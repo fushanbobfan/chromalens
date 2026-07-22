@@ -28,9 +28,22 @@ Then open the printed URL in a browser.
 - **Upload an image&hellip;** — process your own image. Everything happens in your browser;
   nothing is ever sent anywhere.
 - **Use sample image** — reload the built-in sample: a full hue gradient plus swatch pairs
-  people commonly confuse under each deficiency (reds and greens, blues and yellows).
+  people commonly confuse under each deficiency (reds and greens, blues and yellows). Its
+  **confusion score** readout quantifies exactly how much each pair's distinguishability drops
+  under the current deficiency and severity (see below); switching to your own uploaded image
+  clears it, since an arbitrary photo has no fixed "known pairs" to score.
 - **Download simulated image** — save the currently displayed simulation as a PNG, named after
   the deficiency and severity that produced it.
+
+## Confusion score
+
+The sample image's four swatch pairs each pair a color from one side of a well-known confusion
+(red/green, blue/yellow) with the other. For each pair, `colorDistance` (a straight-line RGB
+distance — not perceptually uniform, but a consistent enough yardstick for a relative
+comparison) is computed on the original colors and again after running both through the current
+deficiency and severity; the percentage drop between the two is the "confusion score" for that
+pair. It's a rough, per-pair number rather than a rigorous perceptual metric, but it turns "the
+image looks different now" into something a little more concrete.
 
 ## The simulation
 
