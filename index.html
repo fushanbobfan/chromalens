@@ -20,6 +20,14 @@
       </div>
 
       <div class="control-row">
+        <label for="view-mode">Simulated view</label>
+        <select id="view-mode">
+          <option value="simulated">Simulated colors</option>
+          <option value="heatmap">Change heatmap</option>
+        </select>
+      </div>
+
+      <div class="control-row">
         <label for="severity">Severity</label>
         <input id="severity" type="range" min="0" max="100" step="5" value="100" />
         <span id="severity-value">100%</span>

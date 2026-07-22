@@ -1,4 +1,5 @@
 import { simulateDichromacy, simulateAchromatopsia, listDichromacies, colorDistance, hexToRgb } from "./cvd.js";
+import { heatmapColor } from "./heatmap.js";
 
 const MAX_DIMENSION = 480;
 const SAMPLE_WIDTH = 480;
@@ -18,6 +19,7 @@ const simulatedCanvas = document.getElementById("simulated");
 const originalCtx = originalCanvas.getContext("2d");
 const simulatedCtx = simulatedCanvas.getContext("2d");
 const deficiencySelect = document.getElementById("deficiency");
+const viewModeSelect = document.getElementById("view-mode");
 const severityInput = document.getElementById("severity");
 const severityValue = document.getElementById("severity-value");
 const fileInput = document.getElementById("image-file");
@@ -115,9 +117,12 @@ function applySimulation() {
   const data = imageData.data;
   const deficiency = deficiencySelect.value;
   const severity = Number(severityInput.value) / 100;
+  const showHeatmap = viewModeSelect.value === "heatmap";
 
   for (let i = 0; i < data.length; i += 4) {
-    const result = simulateColor(deficiency, data[i], data[i + 1], data[i + 2], severity);
+    const original = { r: data[i], g: data[i + 1], b: data[i + 2] };
+    const simulated = simulateColor(deficiency, original.r, original.g, original.b, severity);
+    const result = showHeatmap ? heatmapColor(colorDistance(original, simulated)) : simulated;
     data[i] = result.r;
     data[i + 1] = result.g;
     data[i + 2] = result.b;
@@ -153,6 +158,7 @@ function updateConfusionScore(deficiency, severity) {
 }
 
 deficiencySelect.addEventListener("change", applySimulation);
+viewModeSelect.addEventListener("change", applySimulation);
 
 severityInput.addEventListener("input", () => {
   severityValue.textContent = `${severityInput.value}%`;
@@ -169,9 +175,10 @@ useSampleBtn.addEventListener("click", loadSample);
 downloadBtn.addEventListener("click", () => {
   const deficiency = deficiencySelect.value;
   const severity = severityInput.value;
+  const mode = viewModeSelect.value;
   const link = document.createElement("a");
   link.href = simulatedCanvas.toDataURL("image/png");
-  link.download = `chromalens-${deficiency}-${severity}pct.png`;
+  link.download = `chromalens-${deficiency}-${severity}pct-${mode}.png`;
   link.click();
 });
 
