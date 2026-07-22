@@ -1,10 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { clamp255, simulateDichromacy, simulateAchromatopsia, listDichromacies } from "../src/cvd.js";
-
-function distance(a, b) {
-  return Math.hypot(a.r - b.r, a.g - b.g, a.b - b.b);
-}
+import {
+  clamp255,
+  simulateDichromacy,
+  simulateAchromatopsia,
+  listDichromacies,
+  colorDistance as distance,
+  hexToRgb,
+} from "../src/cvd.js";
 
 test("clamp255 clamps to the 0-255 range and rounds", () => {
   assert.equal(clamp255(-10), 0);
@@ -92,4 +95,26 @@ test("simulateAchromatopsia weighs green more than red and blue in the resulting
   const fromBlue = simulateAchromatopsia(0, 0, 255, 1).r;
   assert.ok(fromGreen > fromRed);
   assert.ok(fromRed > fromBlue);
+});
+
+test("colorDistance is zero for an identical color and positive otherwise", () => {
+  const color = { r: 10, g: 20, b: 30 };
+  assert.equal(distance(color, color), 0);
+  assert.ok(distance(color, { r: 11, g: 20, b: 30 }) > 0);
+});
+
+test("colorDistance matches the straight-line distance between pure black and pure white", () => {
+  const black = { r: 0, g: 0, b: 0 };
+  const white = { r: 255, g: 255, b: 255 };
+  assert.ok(Math.abs(distance(black, white) - Math.sqrt(3 * 255 * 255)) < 1e-9);
+});
+
+test("hexToRgb parses a #rrggbb string into its component channels", () => {
+  assert.deepEqual(hexToRgb("#e63946"), { r: 230, g: 57, b: 70 });
+  assert.deepEqual(hexToRgb("#000000"), { r: 0, g: 0, b: 0 });
+  assert.deepEqual(hexToRgb("#ffffff"), { r: 255, g: 255, b: 255 });
+});
+
+test("hexToRgb works the same with or without the leading #", () => {
+  assert.deepEqual(hexToRgb("2a9d8f"), hexToRgb("#2a9d8f"));
 });

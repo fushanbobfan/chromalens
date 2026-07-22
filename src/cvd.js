@@ -11,6 +11,23 @@ export function clamp255(value) {
   return Math.max(0, Math.min(255, Math.round(value)));
 }
 
+/** Straight-line RGB distance between two `{r, g, b}` colors — not perceptually uniform, but
+ * good enough to compare "how much closer did simulating this deficiency bring these two
+ * colors" before and after, which only needs a consistent yardstick, not a perfect one. */
+export function colorDistance(a, b) {
+  return Math.hypot(a.r - b.r, a.g - b.g, a.b - b.b);
+}
+
+/** Parses a `#rrggbb` string into an `{r, g, b}` triple. */
+export function hexToRgb(hex) {
+  const normalized = hex.replace("#", "");
+  return {
+    r: parseInt(normalized.slice(0, 2), 16),
+    g: parseInt(normalized.slice(2, 4), 16),
+    b: parseInt(normalized.slice(4, 6), 16),
+  };
+}
+
 const DICHROMACY_MATRICES = {
   protanopia: [
     [0.567, 0.433, 0.0],
