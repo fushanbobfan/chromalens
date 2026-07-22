@@ -1,8 +1,17 @@
-import { simulateDichromacy, simulateAchromatopsia, listDichromacies } from "./cvd.js";
+import { simulateDichromacy, simulateAchromatopsia, listDichromacies, colorDistance, hexToRgb } from "./cvd.js";
 
 const MAX_DIMENSION = 480;
 const SAMPLE_WIDTH = 480;
 const SAMPLE_HEIGHT = 240;
+
+// Shared between drawing the sample image and scoring how confusable each pair becomes — a
+// single source of truth for "what colors does the sample actually contain".
+const SAMPLE_SWATCH_PAIRS = [
+  ["#e63946", "#2a9d8f"],
+  ["#ff595e", "#8ac926"],
+  ["#ffca3a", "#1982c4"],
+  ["#6a4c93", "#f9c74f"],
+];
 
 const originalCanvas = document.getElementById("original");
 const simulatedCanvas = document.getElementById("simulated");
@@ -15,6 +24,9 @@ const fileInput = document.getElementById("image-file");
 const useSampleBtn = document.getElementById("use-sample");
 const downloadBtn = document.getElementById("download-simulated");
 const statusEl = document.getElementById("status");
+const confusionScoreEl = document.getElementById("confusion-score");
+
+let showingSample = true;
 
 function populateDeficiencyOptions() {
   for (const name of listDichromacies()) {
@@ -39,15 +51,9 @@ function drawSampleImage(ctx, width, height) {
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, width, height * 0.4);
 
-  const pairs = [
-    ["#e63946", "#2a9d8f"],
-    ["#ff595e", "#8ac926"],
-    ["#ffca3a", "#1982c4"],
-    ["#6a4c93", "#f9c74f"],
-  ];
-  const swatchWidth = width / pairs.length;
+  const swatchWidth = width / SAMPLE_SWATCH_PAIRS.length;
   const swatchHeight = height * 0.6;
-  pairs.forEach(([left, right], i) => {
+  SAMPLE_SWATCH_PAIRS.forEach(([left, right], i) => {
     ctx.fillStyle = left;
     ctx.fillRect(i * swatchWidth, height * 0.4, swatchWidth / 2, swatchHeight);
     ctx.fillStyle = right;
@@ -69,6 +75,7 @@ function setCanvasSize(width, height) {
 }
 
 function loadSample() {
+  showingSample = true;
   setCanvasSize(SAMPLE_WIDTH, SAMPLE_HEIGHT);
   drawSampleImage(originalCtx, SAMPLE_WIDTH, SAMPLE_HEIGHT);
   applySimulation();
@@ -76,6 +83,7 @@ function loadSample() {
 }
 
 function loadImageFile(file) {
+  showingSample = false;
   const url = URL.createObjectURL(file);
   const img = new Image();
   img.onload = () => {
@@ -93,6 +101,12 @@ function loadImageFile(file) {
   img.src = url;
 }
 
+function simulateColor(deficiency, r, g, b, severity) {
+  return deficiency === "achromatopsia"
+    ? simulateAchromatopsia(r, g, b, severity)
+    : simulateDichromacy(deficiency, r, g, b, severity);
+}
+
 function applySimulation() {
   const { width, height } = originalCanvas;
   if (width === 0 || height === 0) return;
@@ -103,10 +117,7 @@ function applySimulation() {
   const severity = Number(severityInput.value) / 100;
 
   for (let i = 0; i < data.length; i += 4) {
-    const result =
-      deficiency === "achromatopsia"
-        ? simulateAchromatopsia(data[i], data[i + 1], data[i + 2], severity)
-        : simulateDichromacy(deficiency, data[i], data[i + 1], data[i + 2], severity);
+    const result = simulateColor(deficiency, data[i], data[i + 1], data[i + 2], severity);
     data[i] = result.r;
     data[i + 1] = result.g;
     data[i + 2] = result.b;
@@ -114,6 +125,31 @@ function applySimulation() {
   }
 
   simulatedCtx.putImageData(imageData, 0, 0);
+  updateConfusionScore(deficiency, severity);
+}
+
+// Quantifies exactly how much harder the sample's swatch pairs are to tell apart under the
+// current deficiency and severity — only meaningful for the built-in sample, since an
+// uploaded photo has no fixed "known pairs" to score.
+function updateConfusionScore(deficiency, severity) {
+  if (!showingSample) {
+    confusionScoreEl.innerHTML = "";
+    return;
+  }
+
+  const items = SAMPLE_SWATCH_PAIRS.map(([leftHex, rightHex], i) => {
+    const left = hexToRgb(leftHex);
+    const right = hexToRgb(rightHex);
+    const before = colorDistance(left, right);
+    const after = colorDistance(
+      simulateColor(deficiency, left.r, left.g, left.b, severity),
+      simulateColor(deficiency, right.r, right.g, right.b, severity)
+    );
+    const percentReduction = before === 0 ? 0 : Math.round((1 - after / before) * 100);
+    return `<li>Pair ${i + 1}: distinguishability down ${percentReduction}%</li>`;
+  });
+
+  confusionScoreEl.innerHTML = `<p>Confusion score</p><ul>${items.join("")}</ul>`;
 }
 
 deficiencySelect.addEventListener("change", applySimulation);

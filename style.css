@@ -104,6 +104,20 @@ input[type="file"] {
   font-size: 0.9rem;
 }
 
+.confusion-score {
+  font-size: 0.85rem;
+}
+
+.confusion-score p {
+  margin: 0 0 0.25rem;
+  color: var(--muted);
+}
+
+.confusion-score ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
 .canvases {
   flex: 1 1 480px;
   min-width: 0;
