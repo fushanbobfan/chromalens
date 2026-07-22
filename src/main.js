@@ -13,6 +13,7 @@ const severityInput = document.getElementById("severity");
 const severityValue = document.getElementById("severity-value");
 const fileInput = document.getElementById("image-file");
 const useSampleBtn = document.getElementById("use-sample");
+const downloadBtn = document.getElementById("download-simulated");
 const statusEl = document.getElementById("status");
 
 function populateDeficiencyOptions() {
@@ -128,6 +129,15 @@ fileInput.addEventListener("change", () => {
 });
 
 useSampleBtn.addEventListener("click", loadSample);
+
+downloadBtn.addEventListener("click", () => {
+  const deficiency = deficiencySelect.value;
+  const severity = severityInput.value;
+  const link = document.createElement("a");
+  link.href = simulatedCanvas.toDataURL("image/png");
+  link.download = `chromalens-${deficiency}-${severity}pct.png`;
+  link.click();
+});
 
 populateDeficiencyOptions();
 loadSample();
