@@ -1,0 +1,145 @@
+:root {
+  color-scheme: dark;
+  --bg: #100e17;
+  --panel: #1c1826;
+  --text: #ece9f4;
+  --muted: #948da3;
+  --accent: #c77dff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem 1rem 2.5rem;
+}
+
+header {
+  text-align: center;
+  max-width: 640px;
+}
+
+h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.8rem;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--muted);
+}
+
+main {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+  width: 100%;
+  max-width: 1100px;
+}
+
+.controls {
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 0 0 280px;
+}
+
+.control-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+button,
+.file-label {
+  background: var(--accent);
+  color: #1a0033;
+  border: none;
+  border-radius: 6px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+button:hover,
+.file-label:hover {
+  filter: brightness(1.1);
+}
+
+select,
+input[type="range"] {
+  accent-color: var(--accent);
+}
+
+input[type="file"] {
+  color: var(--muted);
+  font-size: 0.85rem;
+  max-width: 100%;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.status {
+  margin: 0;
+  min-height: 1.2em;
+  font-size: 0.9rem;
+}
+
+.canvases {
+  flex: 1 1 480px;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.canvases figure {
+  margin: 0;
+  flex: 1 1 220px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.canvases figcaption {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+canvas {
+  max-width: 100%;
+  height: auto;
+  background: #05060a;
+  border: 1px solid #2b2740;
+  border-radius: 8px;
+}
+
+footer {
+  margin-top: 2rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-align: center;
+  max-width: 640px;
+}

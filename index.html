@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chromalens</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Chromalens</h1>
+    <p class="subtitle">See an image the way a color vision deficiency would.</p>
+  </header>
+
+  <main>
+    <section class="controls" aria-label="Simulation controls">
+      <div class="control-row">
+        <label for="deficiency">Color vision deficiency</label>
+        <select id="deficiency"></select>
+      </div>
+
+      <div class="control-row">
+        <label for="severity">Severity</label>
+        <input id="severity" type="range" min="0" max="100" step="5" value="100" />
+        <span id="severity-value">100%</span>
+      </div>
+
+      <div class="control-row">
+        <label for="image-file" class="file-label">Upload an image&hellip;</label>
+        <input id="image-file" type="file" accept="image/*" />
+      </div>
+
+      <div class="control-row">
+        <button id="use-sample" type="button">Use sample image</button>
+      </div>
+
+      <p class="hint">
+        Images are processed entirely in your browser — nothing is uploaded anywhere. The
+        sample image pairs colors people often confuse under each deficiency (reds and greens,
+        blues and yellows) alongside a full hue gradient.
+      </p>
+
+      <p class="status" id="status" aria-live="polite"></p>
+    </section>
+
+    <div class="canvases">
+      <figure>
+        <figcaption>Original</figcaption>
+        <canvas id="original" role="img" aria-label="The original, unmodified image"></canvas>
+      </figure>
+      <figure>
+        <figcaption>Simulated</figcaption>
+        <canvas id="simulated" role="img" aria-label="The image as simulated for the selected color vision deficiency and severity"></canvas>
+      </figure>
+    </div>
+  </main>
+
+  <footer>
+    <p>Simulation only — always defer to Web Content Accessibility Guidelines contrast checks for real design decisions.</p>
+  </footer>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
