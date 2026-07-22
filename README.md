@@ -25,6 +25,12 @@ Then open the printed URL in a browser.
   or achromatopsia (full color blindness).
 - **Severity** — 0% (the original, unaffected image) to 100% (full deficiency), linearly
   interpolated.
+- **Simulated view** — **Simulated colors** shows what the deficiency looks like directly.
+  **Change heatmap** instead colors each pixel by *how much* it changed (black = no change, up
+  through red, to yellow = the most change), which works on any image — the confusion score
+  below only scores the sample's four known pairs, but the heatmap highlights every part of an
+  uploaded photo that loses contrast, without needing to know what colors it contains ahead of
+  time.
 - **Upload an image&hellip;** — process your own image. Everything happens in your browser;
   nothing is ever sent anywhere.
 - **Use sample image** — reload the built-in sample: a full hue gradient plus swatch pairs
@@ -32,8 +38,8 @@ Then open the printed URL in a browser.
   **confusion score** readout quantifies exactly how much each pair's distinguishability drops
   under the current deficiency and severity (see below); switching to your own uploaded image
   clears it, since an arbitrary photo has no fixed "known pairs" to score.
-- **Download simulated image** — save the currently displayed simulation as a PNG, named after
-  the deficiency and severity that produced it.
+- **Download simulated image** — save the currently displayed simulation (whichever view mode
+  is active) as a PNG, named after the deficiency, severity, and view mode that produced it.
 
 ## Confusion score
 
@@ -44,6 +50,17 @@ comparison) is computed on the original colors and again after running both thro
 deficiency and severity; the percentage drop between the two is the "confusion score" for that
 pair. It's a rough, per-pair number rather than a rigorous perceptual metric, but it turns "the
 image looks different now" into something a little more concrete.
+
+## Change heatmap
+
+[`src/heatmap.js`](src/heatmap.js) maps a `colorDistance` magnitude to a black → red → yellow
+color, capped at a magnitude of 150 (chosen well below the theoretical maximum of ~441, since
+most real color confusions are far subtler than a full black/white swap — capping lower keeps
+an ordinary photo from reading as mostly black). Where the confusion score only knows how to
+score the sample image's four fixed pairs, the heatmap works on *any* image: **Simulated
+view: Change heatmap** replaces each pixel's simulated color with its own change magnitude,
+turning "these two specific colors get harder to tell apart" into "here's where in this exact
+photo contrast is being lost" for a photo whose colors nobody hand-picked in advance.
 
 ## The simulation
 
