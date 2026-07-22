@@ -29,6 +29,8 @@ Then open the printed URL in a browser.
   nothing is ever sent anywhere.
 - **Use sample image** — reload the built-in sample: a full hue gradient plus swatch pairs
   people commonly confuse under each deficiency (reds and greens, blues and yellows).
+- **Download simulated image** — save the currently displayed simulation as a PNG, named after
+  the deficiency and severity that produced it.
 
 ## The simulation
 
