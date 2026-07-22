@@ -1,0 +1,10 @@
+{
+  "name": "chromalens",
+  "version": "1.0.0",
+  "description": "An interactive color-vision-deficiency simulator for images.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  },
+  "license": "MIT"
+}
