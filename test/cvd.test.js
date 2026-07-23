@@ -4,6 +4,7 @@ import {
   clamp255,
   simulateDichromacy,
   simulateAchromatopsia,
+  daltonize,
   listDichromacies,
   colorDistance as distance,
   hexToRgb,
@@ -118,3 +119,59 @@ test("hexToRgb parses a #rrggbb string into its component channels", () => {
 test("hexToRgb works the same with or without the leading #", () => {
   assert.deepEqual(hexToRgb("2a9d8f"), hexToRgb("#2a9d8f"));
 });
+
+test("daltonize throws on an unknown name", () => {
+  assert.throws(() => daltonize("nonexistent", 100, 100, 100), /Unknown dichromacy/);
+});
+
+test("daltonize at severity 0 returns the original color unchanged", () => {
+  for (const name of listDichromacies()) {
+    const result = daltonize(name, 200, 80, 40, 0);
+    assert.deepEqual(result, { r: 200, g: 80, b: 40 });
+  }
+});
+
+test("daltonize leaves a neutral gray unchanged (nothing lost to redistribute)", () => {
+  // A gray simulates to itself (see above), so the "lost" error is zero and there is nothing
+  // for daltonize to redistribute.
+  for (const name of listDichromacies()) {
+    const result = daltonize(name, 128, 128, 128, 1);
+    assert.deepEqual(result, { r: 128, g: 128, b: 128 });
+  }
+});
+
+// Each pair below was found by random search as a case where the plain simulation collapses
+// the two colors together (a small "raw" distance) but daltonizing first recovers most of the
+// separation (a much larger "daltonized" distance) — daltonize is a heuristic that helps most
+// pairs, not literally every pair, so these are representative examples rather than a general
+// proof.
+const DALTONIZE_RECOVERY_EXAMPLES = {
+  protanopia: [
+    { r: 71, g: 217, b: 81 },
+    { r: 233, g: 2, b: 159 },
+  ],
+  deuteranopia: [
+    { r: 146, g: 181, b: 50 },
+    { r: 230, g: 6, b: 153 },
+  ],
+  tritanopia: [
+    { r: 221, g: 80, b: 213 },
+    { r: 210, g: 206, b: 121 },
+  ],
+};
+
+for (const [name, [a, b]] of Object.entries(DALTONIZE_RECOVERY_EXAMPLES)) {
+  test(`daltonize recovers distinguishability that ${name} simulation collapses, for a representative pair`, () => {
+    const rawAfter = distance(simulateDichromacy(name, a.r, a.g, a.b, 1), simulateDichromacy(name, b.r, b.g, b.b, 1));
+    const aDaltonized = daltonize(name, a.r, a.g, a.b, 1);
+    const bDaltonized = daltonize(name, b.r, b.g, b.b, 1);
+    const daltonizedAfter = distance(
+      simulateDichromacy(name, aDaltonized.r, aDaltonized.g, aDaltonized.b, 1),
+      simulateDichromacy(name, bDaltonized.r, bDaltonized.g, bDaltonized.b, 1)
+    );
+    assert.ok(
+      daltonizedAfter > rawAfter * 2,
+      `expected daltonization to substantially recover separation (raw=${rawAfter}, daltonized=${daltonizedAfter})`
+    );
+  });
+}
