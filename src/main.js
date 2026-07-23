@@ -1,4 +1,4 @@
-import { simulateDichromacy, simulateAchromatopsia, listDichromacies, colorDistance, hexToRgb } from "./cvd.js";
+import { simulateDichromacy, simulateAchromatopsia, daltonize, listDichromacies, colorDistance, hexToRgb } from "./cvd.js";
 import { heatmapColor } from "./heatmap.js";
 
 const MAX_DIMENSION = 480;
@@ -27,8 +27,17 @@ const useSampleBtn = document.getElementById("use-sample");
 const downloadBtn = document.getElementById("download-simulated");
 const statusEl = document.getElementById("status");
 const confusionScoreEl = document.getElementById("confusion-score");
+const simulatedCaptionEl = document.getElementById("simulated-caption");
+const daltonizeOption = viewModeSelect.querySelector('option[value="daltonize"]');
 
 let showingSample = true;
+
+// Achromatopsia collapses every channel to the same gray, leaving no unaffected channel for
+// daltonize to redistribute lost color into — so daltonization only applies to the three
+// dichromacies, not achromatopsia.
+function canDaltonize(deficiency) {
+  return deficiency !== "achromatopsia";
+}
 
 function populateDeficiencyOptions() {
   for (const name of listDichromacies()) {
@@ -109,6 +118,22 @@ function simulateColor(deficiency, r, g, b, severity) {
     : simulateDichromacy(deficiency, r, g, b, severity);
 }
 
+const VIEW_MODE_CAPTIONS = {
+  simulated: "Simulated",
+  heatmap: "Simulated",
+  daltonize: "Daltonized",
+};
+
+// Disallows selecting "Daltonized" for achromatopsia (see canDaltonize) — falls back to
+// "Simulated colors" if it was already selected when the deficiency changed to achromatopsia.
+function updateViewModeAvailability(deficiency) {
+  const allowed = canDaltonize(deficiency);
+  daltonizeOption.disabled = !allowed;
+  if (!allowed && viewModeSelect.value === "daltonize") {
+    viewModeSelect.value = "simulated";
+  }
+}
+
 function applySimulation() {
   const { width, height } = originalCanvas;
   if (width === 0 || height === 0) return;
@@ -117,12 +142,19 @@ function applySimulation() {
   const data = imageData.data;
   const deficiency = deficiencySelect.value;
   const severity = Number(severityInput.value) / 100;
-  const showHeatmap = viewModeSelect.value === "heatmap";
+  updateViewModeAvailability(deficiency);
+  const mode = viewModeSelect.value;
+  simulatedCaptionEl.textContent = VIEW_MODE_CAPTIONS[mode];
 
   for (let i = 0; i < data.length; i += 4) {
     const original = { r: data[i], g: data[i + 1], b: data[i + 2] };
-    const simulated = simulateColor(deficiency, original.r, original.g, original.b, severity);
-    const result = showHeatmap ? heatmapColor(colorDistance(original, simulated)) : simulated;
+    let result;
+    if (mode === "daltonize") {
+      result = daltonize(deficiency, original.r, original.g, original.b, severity);
+    } else {
+      const simulated = simulateColor(deficiency, original.r, original.g, original.b, severity);
+      result = mode === "heatmap" ? heatmapColor(colorDistance(original, simulated)) : simulated;
+    }
     data[i] = result.r;
     data[i + 1] = result.g;
     data[i + 2] = result.b;
@@ -130,31 +162,42 @@ function applySimulation() {
   }
 
   simulatedCtx.putImageData(imageData, 0, 0);
-  updateConfusionScore(deficiency, severity);
+  updateConfusionScore(deficiency, severity, mode);
 }
 
 // Quantifies exactly how much harder the sample's swatch pairs are to tell apart under the
 // current deficiency and severity — only meaningful for the built-in sample, since an
-// uploaded photo has no fixed "known pairs" to score.
-function updateConfusionScore(deficiency, severity) {
+// uploaded photo has no fixed "known pairs" to score. In daltonize mode, scores what a viewer
+// with the deficiency would see after daltonizing instead — the same "how far apart do these
+// end up" comparison, just measured on the corrected colors so it reflects how much of the
+// original distinguishability the correction actually restores.
+function updateConfusionScore(deficiency, severity, mode) {
   if (!showingSample) {
     confusionScoreEl.innerHTML = "";
     return;
   }
 
+  const isDaltonize = mode === "daltonize";
   const items = SAMPLE_SWATCH_PAIRS.map(([leftHex, rightHex], i) => {
     const left = hexToRgb(leftHex);
     const right = hexToRgb(rightHex);
     const before = colorDistance(left, right);
+    const [viewedLeft, viewedRight] = isDaltonize
+      ? [daltonize(deficiency, left.r, left.g, left.b, severity), daltonize(deficiency, right.r, right.g, right.b, severity)]
+      : [left, right];
     const after = colorDistance(
-      simulateColor(deficiency, left.r, left.g, left.b, severity),
-      simulateColor(deficiency, right.r, right.g, right.b, severity)
+      simulateColor(deficiency, viewedLeft.r, viewedLeft.g, viewedLeft.b, severity),
+      simulateColor(deficiency, viewedRight.r, viewedRight.g, viewedRight.b, severity)
     );
-    const percentReduction = before === 0 ? 0 : Math.round((1 - after / before) * 100);
-    return `<li>Pair ${i + 1}: distinguishability down ${percentReduction}%</li>`;
+    const percentOfOriginal = before === 0 ? 100 : Math.round((after / before) * 100);
+    const description = isDaltonize
+      ? `recovered to ${percentOfOriginal}% of the original separation`
+      : `distinguishability down ${100 - percentOfOriginal}%`;
+    return `<li>Pair ${i + 1}: ${description}</li>`;
   });
 
-  confusionScoreEl.innerHTML = `<p>Confusion score</p><ul>${items.join("")}</ul>`;
+  const label = isDaltonize ? "Confusion score after daltonizing" : "Confusion score";
+  confusionScoreEl.innerHTML = `<p>${label}</p><ul>${items.join("")}</ul>`;
 }
 
 deficiencySelect.addEventListener("change", applySimulation);

@@ -24,6 +24,7 @@
         <select id="view-mode">
           <option value="simulated">Simulated colors</option>
           <option value="heatmap">Change heatmap</option>
+          <option value="daltonize">Daltonized (corrected colors)</option>
         </select>
       </div>
 
@@ -59,7 +60,7 @@
         <canvas id="original" role="img" aria-label="The original, unmodified image"></canvas>
       </figure>
       <figure>
-        <figcaption>Simulated</figcaption>
+        <figcaption id="simulated-caption">Simulated</figcaption>
         <canvas id="simulated" role="img" aria-label="The image as simulated for the selected color vision deficiency and severity"></canvas>
       </figure>
     </div>
