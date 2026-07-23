@@ -50,6 +50,30 @@ export function listDichromacies() {
   return Object.keys(DICHROMACY_MATRICES);
 }
 
+// Redistributes the color information a dichromacy simulation discards into channels that
+// deficiency doesn't affect — the classic "daltonize" error-shift approach (Fidaner, Lin &
+// Ozguven 2005), adapted to work directly on the RGB matrices above instead of a full LMS
+// conversion. Protanopia and deuteranopia both confuse red/green, so their lost signal is
+// pushed into blue (and green, for what red alone couldn't carry); tritanopia confuses
+// blue/yellow, so its lost signal is pushed into red and green instead.
+const ERROR_SHIFT_MATRICES = {
+  protanopia: [
+    [0.0, 0.0, 0.0],
+    [0.7, 1.0, 0.0],
+    [0.7, 0.0, 1.0],
+  ],
+  deuteranopia: [
+    [0.0, 0.0, 0.0],
+    [0.7, 1.0, 0.0],
+    [0.7, 0.0, 1.0],
+  ],
+  tritanopia: [
+    [1.0, 0.0, 0.0],
+    [0.0, 1.0, 0.0],
+    [-0.7, 0.7, 1.0],
+  ],
+};
+
 function applyMatrix(matrix, r, g, b) {
   return {
     r: matrix[0][0] * r + matrix[0][1] * g + matrix[0][2] * b,
@@ -73,6 +97,33 @@ export function simulateDichromacy(name, r, g, b, severity = 1) {
     r: clamp255(r + (full.r - r) * severity),
     g: clamp255(g + (full.g - g) * severity),
     b: clamp255(b + (full.b - b) * severity),
+  };
+}
+
+/**
+ * Recolors a color to make it more distinguishable under one of the three dichromacies,
+ * instead of simulating what that deficiency looks like. Computes what the given color would
+ * simulate to, treats the difference from the original as "lost" information, and redistributes
+ * that lost information into channels the deficiency doesn't collapse — approximating the
+ * classic daltonize algorithm without a full LMS color-space conversion. There's no
+ * daltonization equivalent for achromatopsia: full monochromacy discards hue information
+ * entirely, leaving no unaffected channel to redistribute it into.
+ *
+ * This is a per-pixel heuristic, not a guarantee — the 0-255 clamp can absorb the correction
+ * entirely for colors already near black, white, or a channel extreme, so some pairs see little
+ * or no improvement even though most see a clear one.
+ * @param {"protanopia"|"deuteranopia"|"tritanopia"} name
+ */
+export function daltonize(name, r, g, b, severity = 1) {
+  const shift = ERROR_SHIFT_MATRICES[name];
+  if (!shift) throw new Error(`Unknown dichromacy: "${name}"`);
+  const simulated = simulateDichromacy(name, r, g, b, severity);
+  const error = { r: r - simulated.r, g: g - simulated.g, b: b - simulated.b };
+  const correction = applyMatrix(shift, error.r, error.g, error.b);
+  return {
+    r: clamp255(r + correction.r),
+    g: clamp255(g + correction.g),
+    b: clamp255(b + correction.b),
   };
 }
 
