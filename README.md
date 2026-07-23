@@ -30,7 +30,10 @@ Then open the printed URL in a browser.
   through red, to yellow = the most change), which works on any image — the confusion score
   below only scores the sample's four known pairs, but the heatmap highlights every part of an
   uploaded photo that loses contrast, without needing to know what colors it contains ahead of
-  time.
+  time. **Daltonized (corrected colors)** goes the other direction: instead of showing what the
+  deficiency looks like, it recolors the image to be easier to tell apart *for* someone with
+  that deficiency (see below). Unavailable for achromatopsia, since full color blindness leaves
+  no unaffected channel to push corrected color into.
 - **Upload an image&hellip;** — process your own image. Everything happens in your browser;
   nothing is ever sent anywhere.
 - **Use sample image** — reload the built-in sample: a full hue gradient plus swatch pairs
@@ -61,6 +64,24 @@ score the sample image's four fixed pairs, the heatmap works on *any* image: **S
 view: Change heatmap** replaces each pixel's simulated color with its own change magnitude,
 turning "these two specific colors get harder to tell apart" into "here's where in this exact
 photo contrast is being lost" for a photo whose colors nobody hand-picked in advance.
+
+## Daltonization
+
+Where every other view mode simulates a deficiency, `daltonize` in [`src/cvd.js`](src/cvd.js)
+does the opposite: it recolors an image to be *more* distinguishable for someone with one of the
+three dichromacies, using the classic error-redistribution approach (Fidaner, Lin & Ozguven,
+2005), adapted to run directly on this project's RGB matrices instead of a full LMS color-space
+conversion. For each pixel, it simulates the deficiency, treats the difference from the original
+as color information that deficiency discards, and pushes that difference into channels the
+deficiency doesn't collapse — blue (and green) for protanopia and deuteranopia, which both
+confuse red and green; red and green for tritanopia, which confuses blue and yellow instead.
+
+It's a per-pixel heuristic, not a guarantee: the 0-255 clamp can absorb the whole correction for
+colors already near black, white, or a channel extreme, so a handful of pairs see little
+improvement even though most see a substantial one. In daltonize mode, the confusion score panel
+reflects this directly — instead of scoring how much the *simulated* image collapses each
+sample pair, it scores how much of the original separation a viewer with the deficiency would
+still see after the image is daltonized.
 
 ## The simulation
 
@@ -99,8 +120,9 @@ npm test
 Tests use Node's built-in test runner (`node:test`) and check the color math's invariants:
 severity 0 is a no-op, severity 1 leaves neutral gray unchanged, each dichromacy measurably
 collapses the distance between the specific colors it's named for confusing (red/green for
-protanopia and deuteranopia, blue/yellow for tritanopia), and achromatopsia converges to a true
-gray with the expected per-channel luminance weighting.
+protanopia and deuteranopia, blue/yellow for tritanopia), achromatopsia converges to a true
+gray with the expected per-channel luminance weighting, and `daltonize` measurably recovers
+distance for a representative pair per dichromacy that plain simulation collapses.
 
 ## License
 
