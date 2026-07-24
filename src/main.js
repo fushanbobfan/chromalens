@@ -1,5 +1,6 @@
-import { simulateDichromacy, simulateAchromatopsia, daltonize, listDichromacies, colorDistance, hexToRgb } from "./cvd.js";
+import { daltonize, listDichromacies, colorDistance, hexToRgb } from "./cvd.js";
 import { heatmapColor } from "./heatmap.js";
+import { simulateColor } from "./simulateImage.js";
 
 const MAX_DIMENSION = 480;
 const SAMPLE_WIDTH = 480;
@@ -110,12 +111,6 @@ function loadImageFile(file) {
     URL.revokeObjectURL(url);
   };
   img.src = url;
-}
-
-function simulateColor(deficiency, r, g, b, severity) {
-  return deficiency === "achromatopsia"
-    ? simulateAchromatopsia(r, g, b, severity)
-    : simulateDichromacy(deficiency, r, g, b, severity);
 }
 
 const VIEW_MODE_CAPTIONS = {
