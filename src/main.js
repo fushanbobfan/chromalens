@@ -1,6 +1,7 @@
 import { daltonize, listDichromacies, colorDistance, hexToRgb } from "./cvd.js";
 import { heatmapColor } from "./heatmap.js";
 import { simulateColor } from "./simulateImage.js";
+import { compareAllDeficiencies } from "./compareAll.js";
 
 const MAX_DIMENSION = 480;
 const SAMPLE_WIDTH = 480;
@@ -26,12 +27,15 @@ const severityValue = document.getElementById("severity-value");
 const fileInput = document.getElementById("image-file");
 const useSampleBtn = document.getElementById("use-sample");
 const downloadBtn = document.getElementById("download-simulated");
+const compareAllBtn = document.getElementById("compare-all");
+const compareAllGrid = document.getElementById("compare-all-grid");
 const statusEl = document.getElementById("status");
 const confusionScoreEl = document.getElementById("confusion-score");
 const simulatedCaptionEl = document.getElementById("simulated-caption");
 const daltonizeOption = viewModeSelect.querySelector('option[value="daltonize"]');
 
 let showingSample = true;
+let compareAllVisible = false;
 
 // Achromatopsia collapses every channel to the same gray, leaving no unaffected channel for
 // daltonize to redistribute lost color into — so daltonization only applies to the three
@@ -86,11 +90,21 @@ function setCanvasSize(width, height) {
   simulatedCanvas.height = height;
 }
 
+// A new image invalidates any thumbnails compare-all already drew for the previous one
+// (wrong dimensions, wrong colors) — hide it rather than leave stale thumbnails on screen.
+function hideCompareAll() {
+  compareAllVisible = false;
+  compareAllGrid.hidden = true;
+  compareAllGrid.innerHTML = "";
+  compareAllBtn.setAttribute("aria-expanded", "false");
+}
+
 function loadSample() {
   showingSample = true;
   setCanvasSize(SAMPLE_WIDTH, SAMPLE_HEIGHT);
   drawSampleImage(originalCtx, SAMPLE_WIDTH, SAMPLE_HEIGHT);
   applySimulation();
+  hideCompareAll();
   statusEl.textContent = "Showing the built-in sample image.";
 }
 
@@ -103,6 +117,7 @@ function loadImageFile(file) {
     setCanvasSize(width, height);
     originalCtx.drawImage(img, 0, 0, width, height);
     applySimulation();
+    hideCompareAll();
     statusEl.textContent = `Showing "${file.name}".`;
     URL.revokeObjectURL(url);
   };
@@ -195,12 +210,50 @@ function updateConfusionScore(deficiency, severity, mode) {
   confusionScoreEl.innerHTML = `<p>${label}</p><ul>${items.join("")}</ul>`;
 }
 
+// Shows the current image under every deficiency at once, at the current severity, always in
+// plain "simulated colors" (not daltonize/heatmap — those describe a view mode, not a
+// deficiency, so mixing them into a deficiency comparison would answer a different question
+// than the one this view is for).
+function renderCompareAll() {
+  const { width, height } = originalCanvas;
+  if (width === 0 || height === 0) return;
+
+  const { data } = originalCtx.getImageData(0, 0, width, height);
+  const severity = Number(severityInput.value) / 100;
+  const results = compareAllDeficiencies(data, severity);
+
+  compareAllGrid.innerHTML = "";
+  for (const { name, data: simulatedData } of results) {
+    const figure = document.createElement("figure");
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    canvas.setAttribute("role", "img");
+    canvas.setAttribute("aria-label", `The image as simulated for ${name}`);
+    canvas.getContext("2d").putImageData(new ImageData(simulatedData, width, height), 0, 0);
+
+    const caption = document.createElement("figcaption");
+    caption.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+
+    figure.append(canvas, caption);
+    compareAllGrid.appendChild(figure);
+  }
+}
+
 deficiencySelect.addEventListener("change", applySimulation);
 viewModeSelect.addEventListener("change", applySimulation);
 
 severityInput.addEventListener("input", () => {
   severityValue.textContent = `${severityInput.value}%`;
   applySimulation();
+  if (compareAllVisible) renderCompareAll();
+});
+
+compareAllBtn.addEventListener("click", () => {
+  compareAllVisible = !compareAllVisible;
+  compareAllGrid.hidden = !compareAllVisible;
+  compareAllBtn.setAttribute("aria-expanded", String(compareAllVisible));
+  if (compareAllVisible) renderCompareAll();
 });
 
 fileInput.addEventListener("change", () => {

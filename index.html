@@ -44,6 +44,12 @@
         <button id="download-simulated" type="button">Download simulated image</button>
       </div>
 
+      <div class="control-row">
+        <button id="compare-all" type="button" aria-expanded="false" aria-controls="compare-all-grid">
+          Compare all deficiencies
+        </button>
+      </div>
+
       <p class="hint">
         Images are processed entirely in your browser — nothing is uploaded anywhere. The
         sample image pairs colors people often confuse under each deficiency (reds and greens,
@@ -64,6 +70,8 @@
         <canvas id="simulated" role="img" aria-label="The image as simulated for the selected color vision deficiency and severity"></canvas>
       </figure>
     </div>
+
+    <section class="compare-all-grid" id="compare-all-grid" hidden aria-label="Simulated colors under every color vision deficiency"></section>
   </main>
 
   <footer>

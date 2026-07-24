@@ -150,6 +150,30 @@ canvas {
   border-radius: 8px;
 }
 
+.compare-all-grid {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.compare-all-grid figure {
+  margin: 0;
+  flex: 1 1 180px;
+  min-width: 0;
+  max-width: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.compare-all-grid figcaption {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 footer {
   margin-top: 2rem;
   color: var(--muted);
