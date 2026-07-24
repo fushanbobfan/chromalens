@@ -43,6 +43,8 @@ Then open the printed URL in a browser.
   clears it, since an arbitrary photo has no fixed "known pairs" to score.
 - **Download simulated image** — save the currently displayed simulation (whichever view mode
   is active) as a PNG, named after the deficiency, severity, and view mode that produced it.
+- **Compare all deficiencies** — toggle a row of thumbnails showing the current image under
+  every deficiency at once, at the current severity (see below).
 
 ## Confusion score
 
@@ -53,6 +55,20 @@ comparison) is computed on the original colors and again after running both thro
 deficiency and severity; the percentage drop between the two is the "confusion score" for that
 pair. It's a rough, per-pair number rather than a rigorous perceptual metric, but it turns "the
 image looks different now" into something a little more concrete.
+
+## Compare all deficiencies
+
+The other view modes answer "what does this one deficiency look like at this severity?" —
+useful once you already know which one you're checking, but it means comparing two
+deficiencies means switching the dropdown back and forth and trusting memory for what the
+first one looked like. [`src/compareAll.js`](src/compareAll.js) instead runs
+`simulateImageData` (see below) once per deficiency against the same source pixels and returns
+all four results together, so **Compare all deficiencies** can lay them out side by side in one
+glance. It always shows plain simulated colors — not the heatmap or daltonized view — since the
+question it answers ("how does this deficiency differ from that one?") is about comparing
+deficiencies against each other, not comparing view modes. The grid re-renders live as the
+severity slider moves, and is hidden and cleared whenever a new image loads, since a stale set
+of thumbnails at the old image's dimensions would be actively misleading.
 
 ## Change heatmap
 
@@ -104,9 +120,13 @@ color and the fully simulated one, a standard-enough approximation of anomalous 
 (partial deficiency) that doesn't require a full model of how far each affected cone's
 sensitivity has actually shifted.
 
+[`src/simulateImage.js`](src/simulateImage.js) runs `cvd.js`'s per-pixel functions over a whole
+RGBA buffer, returning a new buffer rather than mutating the input — both `main.js`'s two-canvas
+view and `compareAll.js`'s four-way comparison build on this one loop instead of duplicating it.
+
 [`src/main.js`](src/main.js) draws the source image onto a canvas, reads it back with
-`getImageData`, runs every pixel through `cvd.js`, and writes the result to a second canvas with
-`putImageData` — the simulation itself never touches the DOM directly. Images larger than 480px
+`getImageData`, runs every pixel through `simulateImage.js`, and writes the result to a second
+canvas with `putImageData` — the simulation itself never touches the DOM directly. Images larger than 480px
 in either dimension are scaled down first, both for performance (a few hundred thousand pixels
 processed synchronously is instant; a few million isn't) and so the two canvases fit
 side by side without scrolling.
