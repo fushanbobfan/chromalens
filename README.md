@@ -40,7 +40,7 @@ Then open the printed URL in a browser.
   people commonly confuse under each deficiency (reds and greens, blues and yellows). Its
   **confusion score** readout quantifies exactly how much each pair's distinguishability drops
   under the current deficiency and severity (see below); switching to your own uploaded image
-  clears it, since an arbitrary photo has no fixed "known pairs" to score.
+  instead shows a **palette confusion score** for that photo's own dominant colors (see below).
 - **Download simulated image** — save the currently displayed simulation (whichever view mode
   is active) as a PNG, named after the deficiency, severity, and view mode that produced it.
 - **Compare all deficiencies** — toggle a row of thumbnails showing the current image under
@@ -55,6 +55,20 @@ comparison) is computed on the original colors and again after running both thro
 deficiency and severity; the percentage drop between the two is the "confusion score" for that
 pair. It's a rough, per-pair number rather than a rigorous perceptual metric, but it turns "the
 image looks different now" into something a little more concrete.
+
+## Palette confusion score
+
+The sample's four swatch pairs are hand-picked so there's always a fixed, known set of "pairs"
+to score — but an arbitrary uploaded photo has no such fixed pairs. [`src/palette.js`](src/palette.js)
+closes that gap: `extractPalette` groups every opaque pixel into a coarse color bucket (3 bits
+per channel) and returns the handful of buckets with the most pixels, each reported as the true
+average color within it — a full k-means clustering isn't necessary for "which few colors
+actually dominate this image." `findConfusablePairs` then runs the same before/after
+`colorDistance` comparison the sample's confusion score uses, over every pair in that palette,
+and keeps the worst (biggest-drop) ones. The result is the same kind of readout as the sample's
+confusion score, just computed over colors the photo actually contains instead of ones chosen
+in advance — and, unlike the sample's score, it doesn't vary with daltonize mode, since
+re-daltonizing an extracted palette would be scoring a correction nobody applied to the image.
 
 ## Compare all deficiencies
 
@@ -143,6 +157,9 @@ collapses the distance between the specific colors it's named for confusing (red
 protanopia and deuteranopia, blue/yellow for tritanopia), achromatopsia converges to a true
 gray with the expected per-channel luminance weighting, and `daltonize` measurably recovers
 distance for a representative pair per dichromacy that plain simulation collapses.
+`palette.js` is tested separately: bucket grouping and true-color averaging, ignoring fully
+transparent pixels, respecting `maxColors`, and `findConfusablePairs` sorting worst-first and
+matching a known red/green confusion under protanopia.
 
 ## License
 
