@@ -2,6 +2,7 @@ import { daltonize, listDichromacies, colorDistance, hexToRgb } from "./cvd.js";
 import { heatmapColor } from "./heatmap.js";
 import { simulateColor } from "./simulateImage.js";
 import { compareAllDeficiencies } from "./compareAll.js";
+import { extractPalette, findConfusablePairs } from "./palette.js";
 
 const MAX_DIMENSION = 480;
 const SAMPLE_WIDTH = 480;
@@ -175,15 +176,17 @@ function applySimulation() {
   updateConfusionScore(deficiency, severity, mode);
 }
 
-// Quantifies exactly how much harder the sample's swatch pairs are to tell apart under the
-// current deficiency and severity — only meaningful for the built-in sample, since an
-// uploaded photo has no fixed "known pairs" to score. In daltonize mode, scores what a viewer
+// Quantifies exactly how much harder pairs of colors are to tell apart under the current
+// deficiency and severity. For the sample image, scores its four fixed, hand-picked swatch
+// pairs (see SAMPLE_SWATCH_PAIRS). For an uploaded photo, which has no such fixed pairs, scores
+// the worst pairs among a small palette extracted from whatever colors the photo actually
+// contains instead (see updatePaletteConfusionScore). In daltonize mode, scores what a viewer
 // with the deficiency would see after daltonizing instead — the same "how far apart do these
 // end up" comparison, just measured on the corrected colors so it reflects how much of the
 // original distinguishability the correction actually restores.
 function updateConfusionScore(deficiency, severity, mode) {
   if (!showingSample) {
-    confusionScoreEl.innerHTML = "";
+    updatePaletteConfusionScore(deficiency, severity);
     return;
   }
 
@@ -208,6 +211,34 @@ function updateConfusionScore(deficiency, severity, mode) {
 
   const label = isDaltonize ? "Confusion score after daltonizing" : "Confusion score";
   confusionScoreEl.innerHTML = `<p>${label}</p><ul>${items.join("")}</ul>`;
+}
+
+// Extracts a small palette of dominant colors from the uploaded image (see palette.js) and
+// reports its worst pairs — the same before/after colorDistance comparison as the sample's
+// fixed swatch pairs, just run over colors the photo itself actually contains instead of ones
+// chosen in advance. Always plain simulated confusability, regardless of view mode: daltonize's
+// "recovered separation" framing is specific to the sample's daltonize/cvd.js pipeline, and
+// re-daltonizing an extracted palette would score a correction nobody applied to this image.
+function updatePaletteConfusionScore(deficiency, severity) {
+  const { width, height } = originalCanvas;
+  if (width === 0 || height === 0) {
+    confusionScoreEl.innerHTML = "";
+    return;
+  }
+
+  const { data } = originalCtx.getImageData(0, 0, width, height);
+  const palette = extractPalette(data);
+  const pairs = findConfusablePairs(palette, deficiency, severity);
+  if (pairs.length === 0) {
+    confusionScoreEl.innerHTML = "";
+    return;
+  }
+
+  const items = pairs.map(({ a, b, drop }) => {
+    const swatch = (c) => `<span class="swatch" style="background:rgb(${c.r},${c.g},${c.b})"></span>`;
+    return `<li>${swatch(a)}${swatch(b)} distinguishability down ${Math.round(drop)}%</li>`;
+  });
+  confusionScoreEl.innerHTML = `<p>Palette confusion score</p><ul>${items.join("")}</ul>`;
 }
 
 // Shows the current image under every deficiency at once, at the current severity, always in
