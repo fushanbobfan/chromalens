@@ -45,6 +45,8 @@ Then open the printed URL in a browser.
   is active) as a PNG, named after the deficiency, severity, and view mode that produced it.
 - **Compare all deficiencies** — toggle a row of thumbnails showing the current image under
   every deficiency at once, at the current severity (see below).
+- **Click either image** — inspect the exact pixel clicked: its original color, its currently
+  displayed color, and the distance between them (see below).
 
 ## Confusion score
 
@@ -83,6 +85,25 @@ question it answers ("how does this deficiency differ from that one?") is about 
 deficiencies against each other, not comparing view modes. The grid re-renders live as the
 severity slider moves, and is hidden and cleared whenever a new image loads, since a stale set
 of thumbnails at the old image's dimensions would be actively misleading.
+
+## Pixel inspector
+
+The confusion score and palette confusion score both answer "how confusable are these colors in
+general" — for the sample's four hand-picked pairs, or for a handful of colors extracted from
+the whole photo — but neither can tell you about one specific point someone's actually looking
+at. [`src/pixelInspector.js`](src/pixelInspector.js) closes that gap: clicking either canvas
+reads that exact `(x, y)` back from both the original and currently displayed image data and
+reports each as a hex color, plus the same `colorDistance` the confusion scores use, so a single
+picked pixel's own drop reads on the same scale as the rest of the app. It re-runs automatically
+whenever the deficiency, view mode, or severity changes, so the readout tracks whatever's
+currently selected instead of going stale after the first click, and clears whenever a new image
+loads, since the old pixel coordinates may not even be in bounds of the new one.
+
+A click's page coordinates are converted to canvas pixel coordinates by scaling against
+`getBoundingClientRect()` — canvases render at `max-width: 100%; height: auto`, so on a narrow
+viewport the on-screen size can be smaller than the canvas's actual pixel resolution. Without
+that scaling step, a click near the edge of a shrunk canvas would read back a pixel from well
+past its real edge.
 
 ## Change heatmap
 
@@ -159,7 +180,10 @@ gray with the expected per-channel luminance weighting, and `daltonize` measurab
 distance for a representative pair per dichromacy that plain simulation collapses.
 `palette.js` is tested separately: bucket grouping and true-color averaging, ignoring fully
 transparent pixels, respecting `maxColors`, and `findConfusablePairs` sorting worst-first and
-matching a known red/green confusion under protanopia.
+matching a known red/green confusion under protanopia. `pixelInspector.js` is tested
+separately too: hex formatting (zero-padding, uppercase), zero distance for identical colors, a
+known-distance pair, and that each side's original `r`/`g`/`b` fields survive alongside the
+added hex.
 
 ## License
 

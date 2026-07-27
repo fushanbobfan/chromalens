@@ -3,6 +3,7 @@ import { heatmapColor } from "./heatmap.js";
 import { simulateColor } from "./simulateImage.js";
 import { compareAllDeficiencies } from "./compareAll.js";
 import { extractPalette, findConfusablePairs } from "./palette.js";
+import { describePixel } from "./pixelInspector.js";
 
 const MAX_DIMENSION = 480;
 const SAMPLE_WIDTH = 480;
@@ -32,11 +33,13 @@ const compareAllBtn = document.getElementById("compare-all");
 const compareAllGrid = document.getElementById("compare-all-grid");
 const statusEl = document.getElementById("status");
 const confusionScoreEl = document.getElementById("confusion-score");
+const pixelInspectorEl = document.getElementById("pixel-inspector");
 const simulatedCaptionEl = document.getElementById("simulated-caption");
 const daltonizeOption = viewModeSelect.querySelector('option[value="daltonize"]');
 
 let showingSample = true;
 let compareAllVisible = false;
+let pickedPixel = null; // {x, y} in canvas pixel coordinates, or null if nothing's been picked yet
 
 // Achromatopsia collapses every channel to the same gray, leaving no unaffected channel for
 // daltonize to redistribute lost color into — so daltonization only applies to the three
@@ -100,12 +103,21 @@ function hideCompareAll() {
   compareAllBtn.setAttribute("aria-expanded", "false");
 }
 
+// A new image invalidates any previously picked pixel the same way it invalidates compare-all's
+// thumbnails — the old (x, y) may not even be in bounds of the new image, let alone show a
+// color anyone asked about.
+function clearPixelInspector() {
+  pickedPixel = null;
+  pixelInspectorEl.innerHTML = "";
+}
+
 function loadSample() {
   showingSample = true;
   setCanvasSize(SAMPLE_WIDTH, SAMPLE_HEIGHT);
   drawSampleImage(originalCtx, SAMPLE_WIDTH, SAMPLE_HEIGHT);
   applySimulation();
   hideCompareAll();
+  clearPixelInspector();
   statusEl.textContent = "Showing the built-in sample image.";
 }
 
@@ -119,6 +131,7 @@ function loadImageFile(file) {
     originalCtx.drawImage(img, 0, 0, width, height);
     applySimulation();
     hideCompareAll();
+    clearPixelInspector();
     statusEl.textContent = `Showing "${file.name}".`;
     URL.revokeObjectURL(url);
   };
@@ -174,6 +187,7 @@ function applySimulation() {
 
   simulatedCtx.putImageData(imageData, 0, 0);
   updateConfusionScore(deficiency, severity, mode);
+  if (pickedPixel) updatePixelInspector(pickedPixel);
 }
 
 // Quantifies exactly how much harder pairs of colors are to tell apart under the current
@@ -241,6 +255,59 @@ function updatePaletteConfusionScore(deficiency, severity) {
   confusionScoreEl.innerHTML = `<p>Palette confusion score</p><ul>${items.join("")}</ul>`;
 }
 
+// Reads the same (x, y) back from both canvases and reports how that one pixel's color changed
+// — the confusion scores above answer "how confusable are these colors in general", but only
+// for the sample's four fixed pairs or an extracted palette; this answers "what does this exact
+// point in the image look like" for anywhere a user actually clicks. Re-run from applySimulation
+// whenever the deficiency, view mode, or severity changes, so the readout tracks the current
+// settings instead of going stale after the first click.
+function updatePixelInspector({ x, y }) {
+  const { width, height } = originalCanvas;
+  if (width === 0 || height === 0) return;
+
+  const [origR, origG, origB] = originalCtx.getImageData(x, y, 1, 1).data;
+  const [dispR, dispG, dispB] = simulatedCtx.getImageData(x, y, 1, 1).data;
+  const { original, displayed, distance } = describePixel(
+    { r: origR, g: origG, b: origB },
+    { r: dispR, g: dispG, b: dispB }
+  );
+
+  const swatch = (c) => `<span class="swatch" style="background:${c.hex}"></span>`;
+  pixelInspectorEl.innerHTML = `
+    <p>Picked pixel (row ${y + 1}, column ${x + 1})</p>
+    <dl>
+      <dt>Original</dt>
+      <dd>${swatch(original)}${original.hex}</dd>
+      <dt>Displayed</dt>
+      <dd>${swatch(displayed)}${displayed.hex}</dd>
+      <dt>Distance</dt>
+      <dd>${distance.toFixed(1)}</dd>
+    </dl>`;
+}
+
+// Converts a click's page coordinates into canvas pixel coordinates, accounting for the CSS
+// `max-width: 100%; height: auto` scaling that shrinks the canvas's on-screen size below its
+// actual pixel resolution on narrow viewports — without this, a click near the right edge of a
+// scaled-down canvas would read back a pixel from well past the real edge.
+function canvasPixelFromEvent(event, canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const x = Math.floor((event.clientX - rect.left) * scaleX);
+  const y = Math.floor((event.clientY - rect.top) * scaleY);
+  return {
+    x: Math.min(canvas.width - 1, Math.max(0, x)),
+    y: Math.min(canvas.height - 1, Math.max(0, y)),
+  };
+}
+
+function pickPixelAt(event, canvas) {
+  const { width, height } = canvas;
+  if (width === 0 || height === 0) return;
+  pickedPixel = canvasPixelFromEvent(event, canvas);
+  updatePixelInspector(pickedPixel);
+}
+
 // Shows the current image under every deficiency at once, at the current severity, always in
 // plain "simulated colors" (not daltonize/heatmap — those describe a view mode, not a
 // deficiency, so mixing them into a deficiency comparison would answer a different question
@@ -293,6 +360,9 @@ fileInput.addEventListener("change", () => {
 });
 
 useSampleBtn.addEventListener("click", loadSample);
+
+originalCanvas.addEventListener("click", (event) => pickPixelAt(event, originalCanvas));
+simulatedCanvas.addEventListener("click", (event) => pickPixelAt(event, simulatedCanvas));
 
 downloadBtn.addEventListener("click", () => {
   const deficiency = deficiencySelect.value;
