@@ -53,21 +53,23 @@
       <p class="hint">
         Images are processed entirely in your browser — nothing is uploaded anywhere. The
         sample image pairs colors people often confuse under each deficiency (reds and greens,
-        blues and yellows) alongside a full hue gradient.
+        blues and yellows) alongside a full hue gradient. Click either image to inspect that
+        exact pixel's original and displayed color (see below).
       </p>
 
       <p class="status" id="status" aria-live="polite"></p>
       <div class="confusion-score" id="confusion-score" aria-live="polite"></div>
+      <div class="pixel-inspector" id="pixel-inspector" aria-live="polite"></div>
     </section>
 
     <div class="canvases">
       <figure>
         <figcaption>Original</figcaption>
-        <canvas id="original" role="img" aria-label="The original, unmodified image"></canvas>
+        <canvas id="original" role="img" aria-label="The original, unmodified image. Click a point to inspect that pixel's color."></canvas>
       </figure>
       <figure>
         <figcaption id="simulated-caption">Simulated</figcaption>
-        <canvas id="simulated" role="img" aria-label="The image as simulated for the selected color vision deficiency and severity"></canvas>
+        <canvas id="simulated" role="img" aria-label="The image as simulated for the selected color vision deficiency and severity. Click a point to inspect that pixel's color."></canvas>
       </figure>
     </div>
 

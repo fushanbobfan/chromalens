@@ -128,6 +128,41 @@ input[type="file"] {
   vertical-align: -0.05em;
 }
 
+.pixel-inspector {
+  font-size: 0.85rem;
+}
+
+.pixel-inspector p {
+  margin: 0 0 0.25rem;
+  color: var(--muted);
+}
+
+.pixel-inspector dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.5rem;
+  row-gap: 0.15rem;
+}
+
+.pixel-inspector dt {
+  color: var(--muted);
+}
+
+.pixel-inspector dd {
+  margin: 0;
+}
+
+.pixel-inspector .swatch {
+  display: inline-block;
+  width: 0.75em;
+  height: 0.75em;
+  border-radius: 50%;
+  margin-right: 0.3rem;
+  border: 1px solid var(--muted);
+  vertical-align: -0.05em;
+}
+
 .canvases {
   flex: 1 1 480px;
   min-width: 0;
@@ -158,6 +193,11 @@ canvas {
   background: #05060a;
   border: 1px solid #2b2740;
   border-radius: 8px;
+}
+
+#original,
+#simulated {
+  cursor: crosshair;
 }
 
 .compare-all-grid {
