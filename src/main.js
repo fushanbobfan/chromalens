@@ -22,6 +22,8 @@ const originalCanvas = document.getElementById("original");
 const simulatedCanvas = document.getElementById("simulated");
 const originalCtx = originalCanvas.getContext("2d");
 const simulatedCtx = simulatedCanvas.getContext("2d");
+const originalCursorEl = document.getElementById("original-cursor");
+const simulatedCursorEl = document.getElementById("simulated-cursor");
 const deficiencySelect = document.getElementById("deficiency");
 const viewModeSelect = document.getElementById("view-mode");
 const severityInput = document.getElementById("severity");
@@ -40,6 +42,18 @@ const daltonizeOption = viewModeSelect.querySelector('option[value="daltonize"]'
 let showingSample = true;
 let compareAllVisible = false;
 let pickedPixel = null; // {x, y} in canvas pixel coordinates, or null if nothing's been picked yet
+
+// Mouse users pick a pixel by clicking directly on it; keyboard users instead move a cursor
+// with the arrow keys and pick with Enter/Space, so each canvas needs its own remembered
+// position (unlike pickedPixel, which is shared since a click on either canvas inspects the
+// same underlying (x, y) on both). Coarse steps cover a 480px-wide image in a handful of
+// keystrokes; holding Shift switches to single-pixel steps for lining up on something exact.
+const COARSE_STEP = 10;
+const FINE_STEP = 1;
+const keyboardCursors = {
+  original: { canvas: originalCanvas, el: originalCursorEl, x: null, y: null },
+  simulated: { canvas: simulatedCanvas, el: simulatedCursorEl, x: null, y: null },
+};
 
 // Achromatopsia collapses every channel to the same gray, leaving no unaffected channel for
 // daltonize to redistribute lost color into — so daltonization only applies to the three
@@ -111,6 +125,44 @@ function clearPixelInspector() {
   pixelInspectorEl.innerHTML = "";
 }
 
+// A new image also invalidates any keyboard cursor position from the previous one — same
+// reasoning as clearPixelInspector, plus the old (x, y) may now be out of bounds if the new
+// image is smaller.
+function resetKeyboardCursors() {
+  for (const key of Object.keys(keyboardCursors)) {
+    const cursor = keyboardCursors[key];
+    cursor.x = null;
+    cursor.y = null;
+    cursor.el.hidden = true;
+  }
+}
+
+// Placed in percentages of the canvas-wrap, which is sized exactly to the canvas's own
+// (possibly CSS-scaled) on-screen box, so the dot tracks the right image pixel regardless of
+// whether `max-width: 100%` has shrunk the canvas below its native resolution.
+function renderKeyboardCursor(key) {
+  const cursor = keyboardCursors[key];
+  if (cursor.x === null) return;
+  const { width, height } = cursor.canvas;
+  cursor.el.hidden = false;
+  cursor.el.style.left = `${((cursor.x + 0.5) / width) * 100}%`;
+  cursor.el.style.top = `${((cursor.y + 0.5) / height) * 100}%`;
+}
+
+// Arrow keys move this canvas's own keyboard cursor without picking a pixel yet, so a keyboard
+// user can line it up before committing with Enter/Space — the same two-step "aim, then act"
+// shape the mouse gets for free from hovering before clicking.
+function moveKeyboardCursor(key, dx, dy) {
+  const cursor = keyboardCursors[key];
+  const { width, height } = cursor.canvas;
+  if (width === 0 || height === 0) return;
+  const startX = cursor.x === null ? Math.floor(width / 2) : cursor.x;
+  const startY = cursor.y === null ? Math.floor(height / 2) : cursor.y;
+  cursor.x = Math.min(width - 1, Math.max(0, startX + dx));
+  cursor.y = Math.min(height - 1, Math.max(0, startY + dy));
+  renderKeyboardCursor(key);
+}
+
 function loadSample() {
   showingSample = true;
   setCanvasSize(SAMPLE_WIDTH, SAMPLE_HEIGHT);
@@ -118,6 +170,7 @@ function loadSample() {
   applySimulation();
   hideCompareAll();
   clearPixelInspector();
+  resetKeyboardCursors();
   statusEl.textContent = "Showing the built-in sample image.";
 }
 
@@ -132,6 +185,7 @@ function loadImageFile(file) {
     applySimulation();
     hideCompareAll();
     clearPixelInspector();
+    resetKeyboardCursors();
     statusEl.textContent = `Showing "${file.name}".`;
     URL.revokeObjectURL(url);
   };
@@ -363,6 +417,53 @@ useSampleBtn.addEventListener("click", loadSample);
 
 originalCanvas.addEventListener("click", (event) => pickPixelAt(event, originalCanvas));
 simulatedCanvas.addEventListener("click", (event) => pickPixelAt(event, simulatedCanvas));
+
+// Arrow keys aim this canvas's own keyboard cursor (Shift for a single-pixel step instead of
+// the normal coarse one); Enter/Space picks whatever pixel it's currently sitting on, the same
+// inspection a mouse click triggers immediately. preventDefault on the arrow keys stops them
+// from also scrolling the page while aiming.
+function attachKeyboardInspector(canvas, key) {
+  canvas.addEventListener("keydown", (event) => {
+    const step = event.shiftKey ? FINE_STEP : COARSE_STEP;
+    switch (event.key) {
+      case "ArrowUp":
+        event.preventDefault();
+        moveKeyboardCursor(key, 0, -step);
+        break;
+      case "ArrowDown":
+        event.preventDefault();
+        moveKeyboardCursor(key, 0, step);
+        break;
+      case "ArrowLeft":
+        event.preventDefault();
+        moveKeyboardCursor(key, -step, 0);
+        break;
+      case "ArrowRight":
+        event.preventDefault();
+        moveKeyboardCursor(key, step, 0);
+        break;
+      case "Enter":
+      case " ": {
+        event.preventDefault();
+        const cursor = keyboardCursors[key];
+        if (cursor.x === null) moveKeyboardCursor(key, 0, 0); // first press: aim before picking
+        pickedPixel = { x: cursor.x, y: cursor.y };
+        updatePixelInspector(pickedPixel);
+        break;
+      }
+      default:
+        break;
+    }
+  });
+
+  canvas.addEventListener("focus", () => renderKeyboardCursor(key));
+  canvas.addEventListener("blur", () => {
+    keyboardCursors[key].el.hidden = true;
+  });
+}
+
+attachKeyboardInspector(originalCanvas, "original");
+attachKeyboardInspector(simulatedCanvas, "simulated");
 
 downloadBtn.addEventListener("click", () => {
   const deficiency = deficiencySelect.value;
