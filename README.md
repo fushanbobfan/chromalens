@@ -46,7 +46,10 @@ Then open the printed URL in a browser.
 - **Compare all deficiencies** — toggle a row of thumbnails showing the current image under
   every deficiency at once, at the current severity (see below).
 - **Click either image** — inspect the exact pixel clicked: its original color, its currently
-  displayed color, and the distance between them (see below).
+  displayed color, and the distance between them (see below). Both images are also keyboard
+  operable: focus one and use the arrow keys to aim a visible cursor (hold <kbd>Shift</kbd> for
+  a single-pixel step instead of the normal 10px one), then <kbd>Enter</kbd> or <kbd>Space</kbd>
+  to inspect wherever it's sitting.
 
 ## Confusion score
 
@@ -104,6 +107,16 @@ A click's page coordinates are converted to canvas pixel coordinates by scaling 
 viewport the on-screen size can be smaller than the canvas's actual pixel resolution. Without
 that scaling step, a click near the edge of a shrunk canvas would read back a pixel from well
 past its real edge.
+
+A mouse click aims and inspects in one motion; a keyboard has no equivalent to hovering
+somewhere before committing, so each canvas gets its own remembered cursor position instead,
+moved with the arrow keys and only inspected on <kbd>Enter</kbd>/<kbd>Space</kbd> — the same
+"aim, then act" shape a click gets for free. A small dot in the corresponding `.pixel-cursor`
+element, positioned in percentages of the canvas's on-screen box (so it tracks the right pixel
+whether or not the canvas is CSS-scaled), shows sighted keyboard users where it currently is;
+the `aria-live` region the inspector result lands in already announces the outcome to a screen
+reader without any extra wiring. Switching to a new image resets both cursors the same way it
+clears the click-driven inspector, since either canvas may now be a different size.
 
 ## Change heatmap
 

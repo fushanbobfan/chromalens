@@ -65,11 +65,17 @@
     <div class="canvases">
       <figure>
         <figcaption>Original</figcaption>
-        <canvas id="original" role="img" aria-label="The original, unmodified image. Click a point to inspect that pixel's color."></canvas>
+        <div class="canvas-wrap">
+          <canvas id="original" tabindex="0" role="img" aria-label="The original, unmodified image. Click a point, or focus this image and use the arrow keys plus Enter or Space, to inspect that pixel's color."></canvas>
+          <div class="pixel-cursor" id="original-cursor" hidden></div>
+        </div>
       </figure>
       <figure>
         <figcaption id="simulated-caption">Simulated</figcaption>
-        <canvas id="simulated" role="img" aria-label="The image as simulated for the selected color vision deficiency and severity. Click a point to inspect that pixel's color."></canvas>
+        <div class="canvas-wrap">
+          <canvas id="simulated" tabindex="0" role="img" aria-label="The image as simulated for the selected color vision deficiency and severity. Click a point, or focus this image and use the arrow keys plus Enter or Space, to inspect that pixel's color."></canvas>
+          <div class="pixel-cursor" id="simulated-cursor" hidden></div>
+        </div>
       </figure>
     </div>
 
