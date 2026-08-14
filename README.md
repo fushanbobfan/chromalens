@@ -45,6 +45,8 @@ Then open the printed URL in a browser.
   is active) as a PNG, named after the deficiency, severity, and view mode that produced it.
 - **Compare all deficiencies** — toggle a row of thumbnails showing the current image under
   every deficiency at once, at the current severity (see below).
+- **Sweep severities** — toggle a row of thumbnails showing the current image under the
+  currently selected deficiency at 0%, 25%, 50%, 75%, and 100% severity at once (see below).
 - **Click either image** — inspect the exact pixel clicked: its original color, its currently
   displayed color, and the distance between them (see below). Both images are also keyboard
   operable: focus one and use the arrow keys to aim a visible cursor (hold <kbd>Shift</kbd> for
@@ -88,6 +90,18 @@ question it answers ("how does this deficiency differ from that one?") is about 
 deficiencies against each other, not comparing view modes. The grid re-renders live as the
 severity slider moves, and is hidden and cleared whenever a new image loads, since a stale set
 of thumbnails at the old image's dimensions would be actively misleading.
+
+## Sweep severities
+
+Compare all deficiencies fixes the severity and varies the deficiency; **Sweep severities** does
+the opposite — it fixes the deficiency (whichever one is currently selected) and varies the
+severity, running [`src/severitySweep.js`](src/severitySweep.js)'s `sweepSeverities` (a thin
+wrapper around the same `simulateImageData` compareAll.js uses, just called once per severity
+instead of once per deficiency) to show the gradual 0%→100% progression as a single row of
+thumbnails instead of only the one point the severity slider happens to be sitting at. Like
+Compare all deficiencies it always shows plain simulated colors, re-renders live as the
+deficiency dropdown changes (its own severity slider changes don't affect it — it already shows
+every severity), and is hidden and cleared whenever a new image loads.
 
 ## Pixel inspector
 
