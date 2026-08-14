@@ -231,7 +231,8 @@ canvas {
   pointer-events: none;
 }
 
-.compare-all-grid {
+.compare-all-grid,
+.severity-sweep-grid {
   width: 100%;
   display: flex;
   flex-wrap: wrap;
@@ -239,7 +240,8 @@ canvas {
   justify-content: center;
 }
 
-.compare-all-grid figure {
+.compare-all-grid figure,
+.severity-sweep-grid figure {
   margin: 0;
   flex: 1 1 180px;
   min-width: 0;
@@ -250,7 +252,8 @@ canvas {
   gap: 0.4rem;
 }
 
-.compare-all-grid figcaption {
+.compare-all-grid figcaption,
+.severity-sweep-grid figcaption {
   color: var(--muted);
   font-size: 0.85rem;
 }

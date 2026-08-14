@@ -2,6 +2,7 @@ import { daltonize, listDichromacies, colorDistance, hexToRgb } from "./cvd.js";
 import { heatmapColor } from "./heatmap.js";
 import { simulateColor } from "./simulateImage.js";
 import { compareAllDeficiencies } from "./compareAll.js";
+import { sweepSeverities } from "./severitySweep.js";
 import { extractPalette, findConfusablePairs } from "./palette.js";
 import { describePixel } from "./pixelInspector.js";
 
@@ -33,6 +34,8 @@ const useSampleBtn = document.getElementById("use-sample");
 const downloadBtn = document.getElementById("download-simulated");
 const compareAllBtn = document.getElementById("compare-all");
 const compareAllGrid = document.getElementById("compare-all-grid");
+const severitySweepBtn = document.getElementById("severity-sweep");
+const severitySweepGrid = document.getElementById("severity-sweep-grid");
 const statusEl = document.getElementById("status");
 const confusionScoreEl = document.getElementById("confusion-score");
 const pixelInspectorEl = document.getElementById("pixel-inspector");
@@ -41,6 +44,7 @@ const daltonizeOption = viewModeSelect.querySelector('option[value="daltonize"]'
 
 let showingSample = true;
 let compareAllVisible = false;
+let severitySweepVisible = false;
 let pickedPixel = null; // {x, y} in canvas pixel coordinates, or null if nothing's been picked yet
 
 // Mouse users pick a pixel by clicking directly on it; keyboard users instead move a cursor
@@ -117,6 +121,15 @@ function hideCompareAll() {
   compareAllBtn.setAttribute("aria-expanded", "false");
 }
 
+// Same reasoning as hideCompareAll: a new image's severity sweep would show the wrong photo
+// entirely, not just the wrong deficiency, so it's hidden rather than left stale on screen.
+function hideSeveritySweep() {
+  severitySweepVisible = false;
+  severitySweepGrid.hidden = true;
+  severitySweepGrid.innerHTML = "";
+  severitySweepBtn.setAttribute("aria-expanded", "false");
+}
+
 // A new image invalidates any previously picked pixel the same way it invalidates compare-all's
 // thumbnails — the old (x, y) may not even be in bounds of the new image, let alone show a
 // color anyone asked about.
@@ -169,6 +182,7 @@ function loadSample() {
   drawSampleImage(originalCtx, SAMPLE_WIDTH, SAMPLE_HEIGHT);
   applySimulation();
   hideCompareAll();
+  hideSeveritySweep();
   clearPixelInspector();
   resetKeyboardCursors();
   statusEl.textContent = "Showing the built-in sample image.";
@@ -184,6 +198,7 @@ function loadImageFile(file) {
     originalCtx.drawImage(img, 0, 0, width, height);
     applySimulation();
     hideCompareAll();
+    hideSeveritySweep();
     clearPixelInspector();
     resetKeyboardCursors();
     statusEl.textContent = `Showing "${file.name}".`;
@@ -392,7 +407,40 @@ function renderCompareAll() {
   }
 }
 
-deficiencySelect.addEventListener("change", applySimulation);
+// Shows the current image under the currently selected deficiency at several severities at
+// once, from unaffected to full, always in plain "simulated colors" for the same reason
+// renderCompareAll is: daltonize/heatmap describe a view mode, not a deficiency-and-severity
+// combination, so mixing them in would answer a different question than this view is for.
+function renderSeveritySweep() {
+  const { width, height } = originalCanvas;
+  if (width === 0 || height === 0) return;
+
+  const { data } = originalCtx.getImageData(0, 0, width, height);
+  const results = sweepSeverities(data, deficiencySelect.value);
+
+  severitySweepGrid.innerHTML = "";
+  for (const { severity, data: simulatedData } of results) {
+    const figure = document.createElement("figure");
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    canvas.setAttribute("role", "img");
+    const percent = Math.round(severity * 100);
+    canvas.setAttribute("aria-label", `The image at ${percent}% severity`);
+    canvas.getContext("2d").putImageData(new ImageData(simulatedData, width, height), 0, 0);
+
+    const caption = document.createElement("figcaption");
+    caption.textContent = `${percent}%`;
+
+    figure.append(canvas, caption);
+    severitySweepGrid.appendChild(figure);
+  }
+}
+
+deficiencySelect.addEventListener("change", () => {
+  applySimulation();
+  if (severitySweepVisible) renderSeveritySweep();
+});
 viewModeSelect.addEventListener("change", applySimulation);
 
 severityInput.addEventListener("input", () => {
@@ -406,6 +454,13 @@ compareAllBtn.addEventListener("click", () => {
   compareAllGrid.hidden = !compareAllVisible;
   compareAllBtn.setAttribute("aria-expanded", String(compareAllVisible));
   if (compareAllVisible) renderCompareAll();
+});
+
+severitySweepBtn.addEventListener("click", () => {
+  severitySweepVisible = !severitySweepVisible;
+  severitySweepGrid.hidden = !severitySweepVisible;
+  severitySweepBtn.setAttribute("aria-expanded", String(severitySweepVisible));
+  if (severitySweepVisible) renderSeveritySweep();
 });
 
 fileInput.addEventListener("change", () => {
