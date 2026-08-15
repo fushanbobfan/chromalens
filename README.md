@@ -45,8 +45,12 @@ Then open the printed URL in a browser.
   is active) as a PNG, named after the deficiency, severity, and view mode that produced it.
 - **Compare all deficiencies** — toggle a row of thumbnails showing the current image under
   every deficiency at once, at the current severity (see below).
+- **Download comparison grid** — save that same set of per-deficiency thumbnails as a single
+  labeled PNG (see below), whether or not the on-screen row is currently toggled open.
 - **Sweep severities** — toggle a row of thumbnails showing the current image under the
   currently selected deficiency at 0%, 25%, 50%, 75%, and 100% severity at once (see below).
+- **Download severity sweep** — save that same severity progression as a single labeled PNG
+  (see below), whether or not the on-screen row is currently toggled open.
 - **Click either image** — inspect the exact pixel clicked: its original color, its currently
   displayed color, and the distance between them (see below). Both images are also keyboard
   operable: focus one and use the arrow keys to aim a visible cursor (hold <kbd>Shift</kbd> for
@@ -102,6 +106,22 @@ thumbnails instead of only the one point the severity slider happens to be sitti
 Compare all deficiencies it always shows plain simulated colors, re-renders live as the
 deficiency dropdown changes (its own severity slider changes don't affect it — it already shows
 every severity), and is hidden and cleared whenever a new image loads.
+
+## Downloading a comparison grid
+
+The on-screen compare-all and severity-sweep rows are useful for a quick look, but there's no
+way to save "all four deficiencies" or "the whole severity progression" as a single image the
+way **Download simulated image** saves one view — until now every thumbnail would need
+saving individually. **Download comparison grid** and **Download severity sweep** compose their
+row's thumbnails onto one offscreen canvas instead: each labeled with the deficiency name or
+severity percentage, arranged by [`src/gridLayout.js`](src/gridLayout.js)'s `computeGridLayout`
+into a roughly square grid (four deficiencies become 2x2; the default five severities become
+3 columns with a short second row) rather than one very wide strip, then downloaded as a single
+PNG the same way `downloadBtn` already turns a canvas into a file. Like the download buttons for a
+single view, these don't require the matching on-screen row to be toggled open first — they
+recompute the same underlying `compareAllDeficiencies`/`sweepSeverities` results independently
+of what's currently visible. `computeGridLayout`'s column/row math has no DOM dependency and is
+tested on its own; only the actual thumbnail compositing lives in `main.js`.
 
 ## Pixel inspector
 
