@@ -5,6 +5,7 @@ import { compareAllDeficiencies } from "./compareAll.js";
 import { sweepSeverities } from "./severitySweep.js";
 import { extractPalette, findConfusablePairs } from "./palette.js";
 import { describePixel } from "./pixelInspector.js";
+import { computeGridLayout } from "./gridLayout.js";
 
 const MAX_DIMENSION = 480;
 const SAMPLE_WIDTH = 480;
@@ -34,8 +35,10 @@ const useSampleBtn = document.getElementById("use-sample");
 const downloadBtn = document.getElementById("download-simulated");
 const compareAllBtn = document.getElementById("compare-all");
 const compareAllGrid = document.getElementById("compare-all-grid");
+const downloadCompareAllBtn = document.getElementById("download-compare-all");
 const severitySweepBtn = document.getElementById("severity-sweep");
 const severitySweepGrid = document.getElementById("severity-sweep-grid");
+const downloadSeveritySweepBtn = document.getElementById("download-severity-sweep");
 const statusEl = document.getElementById("status");
 const confusionScoreEl = document.getElementById("confusion-score");
 const pixelInspectorEl = document.getElementById("pixel-inspector");
@@ -436,6 +439,71 @@ function renderSeveritySweep() {
     severitySweepGrid.appendChild(figure);
   }
 }
+
+// Composes a set of same-size labeled thumbnails (compare-all's four deficiencies, or a
+// severity sweep's several percentages) onto one offscreen canvas via gridLayout.js, and
+// triggers a PNG download of the result — the same download-a-link pattern downloadBtn already
+// uses for a single image, just for a whole comparison at once so no one has to save each
+// thumbnail separately and reassemble them elsewhere.
+function downloadGrid(cells, width, height, filename) {
+  const layout = computeGridLayout(cells.length, width, height);
+  if (layout.width === 0 || layout.height === 0) return;
+
+  const gridCanvas = document.createElement("canvas");
+  gridCanvas.width = layout.width;
+  gridCanvas.height = layout.height;
+  const gridCtx = gridCanvas.getContext("2d");
+
+  gridCtx.fillStyle = "#100e17";
+  gridCtx.fillRect(0, 0, gridCanvas.width, gridCanvas.height);
+  gridCtx.fillStyle = "#ece9f4";
+  gridCtx.font = "16px sans-serif";
+  gridCtx.textAlign = "center";
+  gridCtx.textBaseline = "middle";
+
+  cells.forEach(({ label, data }, i) => {
+    const { x, y, labelY } = layout.positions[i];
+    const cellCanvas = document.createElement("canvas");
+    cellCanvas.width = width;
+    cellCanvas.height = height;
+    cellCanvas.getContext("2d").putImageData(new ImageData(data, width, height), 0, 0);
+    gridCtx.drawImage(cellCanvas, x, y);
+    gridCtx.fillText(label, x + width / 2, labelY);
+  });
+
+  const link = document.createElement("a");
+  link.href = gridCanvas.toDataURL("image/png");
+  link.download = filename;
+  link.click();
+}
+
+downloadCompareAllBtn.addEventListener("click", () => {
+  const { width, height } = originalCanvas;
+  if (width === 0 || height === 0) return;
+
+  const { data } = originalCtx.getImageData(0, 0, width, height);
+  const severity = Number(severityInput.value) / 100;
+  const results = compareAllDeficiencies(data, severity);
+  const cells = results.map(({ name, data: simulatedData }) => ({
+    label: name.charAt(0).toUpperCase() + name.slice(1),
+    data: simulatedData,
+  }));
+  downloadGrid(cells, width, height, `chromalens-compare-all-${Math.round(severity * 100)}pct.png`);
+});
+
+downloadSeveritySweepBtn.addEventListener("click", () => {
+  const { width, height } = originalCanvas;
+  if (width === 0 || height === 0) return;
+
+  const { data } = originalCtx.getImageData(0, 0, width, height);
+  const deficiency = deficiencySelect.value;
+  const results = sweepSeverities(data, deficiency);
+  const cells = results.map(({ severity, data: simulatedData }) => ({
+    label: `${Math.round(severity * 100)}%`,
+    data: simulatedData,
+  }));
+  downloadGrid(cells, width, height, `chromalens-severity-sweep-${deficiency}.png`);
+});
 
 deficiencySelect.addEventListener("change", () => {
   applySimulation();
