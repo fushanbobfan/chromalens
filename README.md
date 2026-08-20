@@ -56,6 +56,10 @@ Then open the printed URL in a browser.
   operable: focus one and use the arrow keys to aim a visible cursor (hold <kbd>Shift</kbd> for
   a single-pixel step instead of the normal 10px one), then <kbd>Enter</kbd> or <kbd>Space</kbd>
   to inspect wherever it's sitting.
+- **Accessible palette size / Generate palette** — build a palette of N colors chosen to stay
+  distinguishable from each other under every simulated deficiency, for picking chart or UI
+  colors ahead of time (see below). **Copy hex codes** copies the generated palette to the
+  clipboard, one hex code per line.
 
 ## Confusion score
 
@@ -152,6 +156,28 @@ the `aria-live` region the inspector result lands in already announces the outco
 reader without any extra wiring. Switching to a new image resets both cursors the same way it
 clears the click-driven inspector, since either canvas may now be a different size.
 
+## Accessible palette generator
+
+The confusion score and palette confusion score both answer "how bad is *this* existing set of
+colors" — useful for checking a photo or a hand-picked pair after the fact, but no help choosing
+colors in the first place, before anyone's picked pairs to compare. [`src/paletteGenerator.js`](src/paletteGenerator.js)
+goes the other direction: `generateAccessiblePalette(count)` builds a palette of `count` colors
+meant to stay distinguishable under every deficiency this app simulates, not just to unaffected
+vision — a starting point for a chart legend or UI color set, rather than a checker for one
+that's already been chosen.
+
+It works from a fixed, deterministic grid of candidate colors in HSL space (a dozen-degree hue
+step at a couple of mid-range saturation and lightness levels each — not random sampling, so the
+same `count` always returns the same palette) and greedily grows the palette by maximin
+selection: starting from a fixed first candidate, each subsequent color is whichever remaining
+candidate maximizes its *worst-case* distance to every color already chosen, where "worst-case"
+is the smallest `colorDistance` across the original pair and the same pair run through every
+simulated deficiency at full severity. A palette is only as distinguishable as its least
+distinguishable view, so that worst-case measure — not just the original-color distance the
+maximin search would otherwise optimize — is what actually drives which candidate gets picked at
+each step. Like the rest of the color modules, it has no DOM dependency and reuses `cvd.js`'s
+`simulateColor` and `colorDistance` rather than duplicating either.
+
 ## Change heatmap
 
 [`src/heatmap.js`](src/heatmap.js) maps a `colorDistance` magnitude to a black → red → yellow
@@ -230,7 +256,10 @@ transparent pixels, respecting `maxColors`, and `findConfusablePairs` sorting wo
 matching a known red/green confusion under protanopia. `pixelInspector.js` is tested
 separately too: hex formatting (zero-padding, uppercase), zero distance for identical colors, a
 known-distance pair, and that each side's original `r`/`g`/`b` fields survive alongside the
-added hex.
+added hex. `paletteGenerator.js` is tested for returning exactly the requested color count,
+rejecting a non-positive/non-integer/too-large count, determinism across repeated calls, no
+repeated colors, well-formed hex output, and that every pair in a generated palette clears a
+worst-case-distance floor across every simulated deficiency.
 
 ## License
 

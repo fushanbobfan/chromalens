@@ -58,6 +58,16 @@
         <button id="download-severity-sweep" type="button">Download severity sweep</button>
       </div>
 
+      <div class="control-row">
+        <label for="palette-count">Accessible palette size</label>
+        <input id="palette-count" type="number" min="2" max="12" value="5" />
+        <button id="generate-palette" type="button">Generate palette</button>
+      </div>
+      <div class="control-row">
+        <button id="copy-palette" type="button" disabled>Copy hex codes</button>
+      </div>
+      <div class="palette-generator" id="palette-generator" aria-live="polite"></div>
+
       <p class="hint">
         Images are processed entirely in your browser — nothing is uploaded anywhere. The
         sample image pairs colors people often confuse under each deficiency (reds and greens,
