@@ -163,6 +163,36 @@ input[type="file"] {
   vertical-align: -0.05em;
 }
 
+#palette-count {
+  width: 3.5em;
+}
+
+.palette-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.palette-swatches figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.palette-swatches .swatch {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--muted);
+}
+
+.palette-swatches figcaption {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
 .canvases {
   flex: 1 1 480px;
   min-width: 0;
