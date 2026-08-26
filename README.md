@@ -59,7 +59,8 @@ Then open the printed URL in a browser.
 - **Accessible palette size / Generate palette** — build a palette of N colors chosen to stay
   distinguishable from each other under every simulated deficiency, for picking chart or UI
   colors ahead of time (see below). **Copy hex codes** copies the generated palette to the
-  clipboard, one hex code per line.
+  clipboard, one hex code per line. **Download palette** saves the same palette as a single
+  labeled PNG of its swatches.
 
 ## Confusion score
 
@@ -177,6 +178,13 @@ distinguishable view, so that worst-case measure — not just the original-color
 maximin search would otherwise optimize — is what actually drives which candidate gets picked at
 each step. Like the rest of the color modules, it has no DOM dependency and reuses `cvd.js`'s
 `simulateColor` and `colorDistance` rather than duplicating either.
+
+**Download palette** reuses [`src/gridLayout.js`](src/gridLayout.js)'s `computeGridLayout` —
+the same grid math behind **Download comparison grid** and **Download severity sweep** — to lay
+out one flat-color swatch per palette entry instead of a simulated-image thumbnail, each labeled
+with its own hex code, and saves the result as a single PNG. **Copy hex codes** already covers a
+plain-text export; this is the same palette as an image, for pasting straight into a design tool
+or attaching to a message instead of retyping hex codes by hand.
 
 ## Change heatmap
 

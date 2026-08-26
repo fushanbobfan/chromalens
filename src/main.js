@@ -43,6 +43,7 @@ const downloadSeveritySweepBtn = document.getElementById("download-severity-swee
 const paletteCountInput = document.getElementById("palette-count");
 const generatePaletteBtn = document.getElementById("generate-palette");
 const copyPaletteBtn = document.getElementById("copy-palette");
+const downloadPaletteBtn = document.getElementById("download-palette");
 const paletteGeneratorEl = document.getElementById("palette-generator");
 const statusEl = document.getElementById("status");
 const confusionScoreEl = document.getElementById("confusion-score");
@@ -501,11 +502,13 @@ generatePaletteBtn.addEventListener("click", () => {
     generatedPalette = null;
     paletteGeneratorEl.innerHTML = "";
     copyPaletteBtn.disabled = true;
+    downloadPaletteBtn.disabled = true;
     statusEl.textContent = error.message;
     return;
   }
   renderGeneratedPalette(generatedPalette);
   copyPaletteBtn.disabled = false;
+  downloadPaletteBtn.disabled = false;
 });
 
 copyPaletteBtn.addEventListener("click", async () => {
@@ -520,6 +523,43 @@ copyPaletteBtn.addEventListener("click", async () => {
     statusEl.textContent = `Copy these hex codes: ${generatedPalette.map((c) => c.hex).join(", ")}`;
   }
 });
+
+// Composes the generated palette's swatches onto one offscreen canvas via gridLayout.js — the
+// same labeled-grid approach downloadGrid uses for compare-all and the severity sweep, just with
+// each cell a flat color fill instead of a simulated-image thumbnail — so the palette can be
+// shared or referenced as a single image alongside "Copy hex codes"' plain-text export.
+function downloadPalette() {
+  if (!generatedPalette) return;
+  const swatchSize = 96;
+  const layout = computeGridLayout(generatedPalette.length, swatchSize, swatchSize);
+  if (layout.width === 0 || layout.height === 0) return;
+
+  const gridCanvas = document.createElement("canvas");
+  gridCanvas.width = layout.width;
+  gridCanvas.height = layout.height;
+  const gridCtx = gridCanvas.getContext("2d");
+
+  gridCtx.fillStyle = "#100e17";
+  gridCtx.fillRect(0, 0, gridCanvas.width, gridCanvas.height);
+  gridCtx.font = "16px sans-serif";
+  gridCtx.textAlign = "center";
+  gridCtx.textBaseline = "middle";
+
+  generatedPalette.forEach((color, i) => {
+    const { x, y, labelY } = layout.positions[i];
+    gridCtx.fillStyle = color.hex;
+    gridCtx.fillRect(x, y, swatchSize, swatchSize);
+    gridCtx.fillStyle = "#ece9f4";
+    gridCtx.fillText(color.hex, x + swatchSize / 2, labelY);
+  });
+
+  const link = document.createElement("a");
+  link.href = gridCanvas.toDataURL("image/png");
+  link.download = `chromalens-palette-${generatedPalette.length}.png`;
+  link.click();
+}
+
+downloadPaletteBtn.addEventListener("click", downloadPalette);
 
 downloadCompareAllBtn.addEventListener("click", () => {
   const { width, height } = originalCanvas;
