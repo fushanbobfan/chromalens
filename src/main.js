@@ -5,6 +5,7 @@ import { compareAllDeficiencies } from "./compareAll.js";
 import { sweepSeverities } from "./severitySweep.js";
 import { extractPalette, findConfusablePairs } from "./palette.js";
 import { generateAccessiblePalette } from "./paletteGenerator.js";
+import { parseHexList, scorePalette } from "./paletteCheck.js";
 import { describePixel } from "./pixelInspector.js";
 import { computeGridLayout } from "./gridLayout.js";
 
@@ -45,6 +46,9 @@ const generatePaletteBtn = document.getElementById("generate-palette");
 const copyPaletteBtn = document.getElementById("copy-palette");
 const downloadPaletteBtn = document.getElementById("download-palette");
 const paletteGeneratorEl = document.getElementById("palette-generator");
+const paletteCheckInput = document.getElementById("palette-check-input");
+const checkPaletteBtn = document.getElementById("check-palette");
+const paletteCheckResultEl = document.getElementById("palette-check-result");
 const statusEl = document.getElementById("status");
 const confusionScoreEl = document.getElementById("confusion-score");
 const pixelInspectorEl = document.getElementById("pixel-inspector");
@@ -560,6 +564,77 @@ function downloadPalette() {
 }
 
 downloadPaletteBtn.addEventListener("click", downloadPalette);
+
+// The generator builds a palette that clears the worst-case-distance floor; this checks one the
+// user already has against the same floor (see paletteCheck.js), listing the closest pairs
+// first and naming the deficiency that limits each. Swatch-plus-hex rows match the confusion
+// score and pixel inspector's presentation elsewhere on the page.
+const MAX_CHECK_PAIRS_SHOWN = 8;
+
+function titleCase(name) {
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+function renderPaletteCheck(text) {
+  const { colors, invalid } = parseHexList(text);
+  paletteCheckResultEl.innerHTML = "";
+
+  if (colors.length < 2) {
+    const p = document.createElement("p");
+    p.textContent =
+      colors.length === 0
+        ? "Enter at least two hex colors to check."
+        : "Only one color read — enter at least two to compare.";
+    paletteCheckResultEl.appendChild(p);
+    if (invalid.length > 0) paletteCheckResultEl.appendChild(invalidNote(invalid));
+    return;
+  }
+
+  const { pairs, safeDistance, allClear } = scorePalette(colors);
+  const failing = pairs.filter((pair) => !pair.safe);
+
+  const summary = document.createElement("p");
+  summary.textContent = allClear
+    ? `All ${pairs.length} pairs stay at least ${safeDistance} apart under every simulated deficiency.`
+    : `${failing.length} of ${pairs.length} pairs fall below the ${safeDistance}-unit floor. Closest first:`;
+  paletteCheckResultEl.appendChild(summary);
+
+  const shown = (allClear ? pairs : failing).slice(0, MAX_CHECK_PAIRS_SHOWN);
+  const list = document.createElement("ul");
+  for (const pair of shown) {
+    const li = document.createElement("li");
+    const limit =
+      pair.limitedBy === "original"
+        ? "already this close without any deficiency"
+        : `limited by ${titleCase(pair.limitedBy)}`;
+    li.innerHTML =
+      `<span class="swatch" style="background:${pair.a.hex}"></span>${pair.a.hex} ` +
+      `<span class="swatch" style="background:${pair.b.hex}"></span>${pair.b.hex} ` +
+      `— ${Math.round(pair.distance)}, ${limit}`;
+    list.appendChild(li);
+  }
+  paletteCheckResultEl.appendChild(list);
+
+  if (!allClear && failing.length > shown.length) {
+    const more = document.createElement("p");
+    more.className = "hint";
+    more.textContent = `+${failing.length - shown.length} more below the floor.`;
+    paletteCheckResultEl.appendChild(more);
+  }
+
+  if (invalid.length > 0) paletteCheckResultEl.appendChild(invalidNote(invalid));
+}
+
+function invalidNote(invalid) {
+  const note = document.createElement("p");
+  note.className = "hint";
+  note.textContent = `Ignored ${invalid.length} unrecognized token${
+    invalid.length === 1 ? "" : "s"
+  }: ${invalid.join(", ")}`;
+  return note;
+}
+
+checkPaletteBtn.addEventListener("click", () => renderPaletteCheck(paletteCheckInput.value));
 
 downloadCompareAllBtn.addEventListener("click", () => {
   const { width, height } = originalCanvas;

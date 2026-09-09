@@ -69,6 +69,27 @@
       </div>
       <div class="palette-generator" id="palette-generator" aria-live="polite"></div>
 
+      <div class="control-row">
+        <label for="palette-check-input">Check an existing palette</label>
+      </div>
+      <div class="control-row">
+        <textarea
+          id="palette-check-input"
+          rows="3"
+          placeholder="Paste hex codes, e.g. #1f77b4 #ff7f0e #2ca02c"
+          aria-describedby="palette-check-hint"
+        ></textarea>
+      </div>
+      <div class="control-row">
+        <button id="check-palette" type="button">Check palette</button>
+      </div>
+      <p id="palette-check-hint" class="hint">
+        Scores every pair of colors in a palette you already have by its worst-case separation
+        across all four simulated deficiencies, worst pair first, and names the one that limits
+        each.
+      </p>
+      <div class="palette-check" id="palette-check-result" aria-live="polite"></div>
+
       <p class="hint">
         Images are processed entirely in your browser — nothing is uploaded anywhere. The
         sample image pairs colors people often confuse under each deficiency (reds and greens,
