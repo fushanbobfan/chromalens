@@ -61,6 +61,10 @@ Then open the printed URL in a browser.
   colors ahead of time (see below). **Copy hex codes** copies the generated palette to the
   clipboard, one hex code per line. **Download palette** saves the same palette as a single
   labeled PNG of its swatches.
+- **Check an existing palette** — paste a list of hex codes and **Check palette** scores every
+  pair by its worst-case separation under all four simulated deficiencies, lists the closest
+  pairs first, and names the deficiency limiting each (see below). The other direction from the
+  generator: it grades a palette you already have instead of building a new one.
 
 ## Confusion score
 
@@ -186,6 +190,21 @@ with its own hex code, and saves the result as a single PNG. **Copy hex codes** 
 plain-text export; this is the same palette as an image, for pasting straight into a design tool
 or attaching to a message instead of retyping hex codes by hand.
 
+## Checking an existing palette
+
+The generator answers "give me colors that will hold up"; [`src/paletteCheck.js`](src/paletteCheck.js)
+answers "will *these* hold up" for a palette that already exists — a chart legend, a brand set,
+map categories. `parseHexList` pulls hex codes out of a free-form string (whitespace-, comma-,
+or semicolon-separated, with or without `#`, 3- or 6-digit), reporting anything it can't parse
+rather than dropping it silently. `scorePalette` then runs the same worst-case-distance measure
+`paletteGenerator.js` uses — the minimum `colorDistance` across the original pair and every
+deficiency at full severity — over every unordered pair, sorts them closest-first, marks each
+against the shared `SAFE_DISTANCE` floor of 40, and records which view (a deficiency, or the
+original colors themselves) is the one pulling each pair together. The panel shows the closest
+pairs as swatch rows with that limiting view named, so a failing palette points straight at the
+pair and the deficiency to fix. Like the other color modules it has no DOM dependency and is
+unit-tested directly.
+
 ## Change heatmap
 
 [`src/heatmap.js`](src/heatmap.js) maps a `colorDistance` magnitude to a black → red → yellow
@@ -267,7 +286,12 @@ known-distance pair, and that each side's original `r`/`g`/`b` fields survive al
 added hex. `paletteGenerator.js` is tested for returning exactly the requested color count,
 rejecting a non-positive/non-integer/too-large count, determinism across repeated calls, no
 repeated colors, well-formed hex output, and that every pair in a generated palette clears a
-worst-case-distance floor across every simulated deficiency.
+worst-case-distance floor across every simulated deficiency. `paletteCheck.js` is tested for
+parsing mixed separators, missing `#`, and 3-digit shorthand, collecting unparseable tokens,
+tolerating empty/non-string input, worst-case separation never exceeding the plain distance and
+blaming a red/green pair on a red/green deficiency, and `scorePalette` ranking pairs worst-first,
+flagging near-duplicates while clearing well-spread sets, honoring a threshold override, and
+handling fewer than two colors.
 
 ## License
 
