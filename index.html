@@ -90,6 +90,21 @@
       </p>
       <div class="palette-check" id="palette-check-result" aria-live="polite"></div>
 
+      <div class="control-row">
+        <label for="contrast-fg">Foreground color</label>
+        <input id="contrast-fg" type="color" value="#000000" />
+        <label for="contrast-bg">on background</label>
+        <input id="contrast-bg" type="color" value="#ffffff" />
+        <button id="check-contrast" type="button">Check contrast</button>
+      </div>
+      <p id="contrast-hint" class="hint">
+        Checks the WCAG 2.x contrast ratio between a foreground and background color — legibility
+        for anyone, independent of any simulated deficiency above. A color pair can score well
+        here and still be a poor pick under a deficiency, or the reverse, since contrast ratio
+        measures luminance while the confusion scores above measure hue and saturation.
+      </p>
+      <div class="contrast-check" id="contrast-check-result" aria-live="polite"></div>
+
       <p class="hint">
         Images are processed entirely in your browser — nothing is uploaded anywhere. The
         sample image pairs colors people often confuse under each deficiency (reds and greens,
@@ -124,7 +139,7 @@
   </main>
 
   <footer>
-    <p>Simulation only — always defer to Web Content Accessibility Guidelines contrast checks for real design decisions.</p>
+    <p>Deficiency simulation is an approximation, not a substitute for testing with real users. The contrast checker above implements the actual WCAG 2.x formula.</p>
   </footer>
 
   <script type="module" src="src/main.js"></script>

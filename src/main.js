@@ -8,6 +8,7 @@ import { generateAccessiblePalette } from "./paletteGenerator.js";
 import { parseHexList, scorePalette } from "./paletteCheck.js";
 import { describePixel } from "./pixelInspector.js";
 import { computeGridLayout } from "./gridLayout.js";
+import { contrastRatio, wcagRating } from "./contrast.js";
 
 const MAX_DIMENSION = 480;
 const SAMPLE_WIDTH = 480;
@@ -49,6 +50,10 @@ const paletteGeneratorEl = document.getElementById("palette-generator");
 const paletteCheckInput = document.getElementById("palette-check-input");
 const checkPaletteBtn = document.getElementById("check-palette");
 const paletteCheckResultEl = document.getElementById("palette-check-result");
+const contrastFgInput = document.getElementById("contrast-fg");
+const contrastBgInput = document.getElementById("contrast-bg");
+const checkContrastBtn = document.getElementById("check-contrast");
+const contrastCheckResultEl = document.getElementById("contrast-check-result");
 const statusEl = document.getElementById("status");
 const confusionScoreEl = document.getElementById("confusion-score");
 const pixelInspectorEl = document.getElementById("pixel-inspector");
@@ -635,6 +640,52 @@ function invalidNote(invalid) {
 }
 
 checkPaletteBtn.addEventListener("click", () => renderPaletteCheck(paletteCheckInput.value));
+
+// A different question from every check above: not "how confusable do these colors become
+// under a deficiency" but "is this foreground legible against this background for anyone,"
+// per the WCAG 2.x contrast-ratio thresholds. `<input type="color">` always yields a valid
+// 6-digit hex, so there's no invalid-input case to report here the way palette checking has.
+function renderContrastCheck(fgHex, bgHex) {
+  const fg = hexToRgb(fgHex);
+  const bg = hexToRgb(bgHex);
+  const ratio = contrastRatio(fg, bg);
+  const rating = wcagRating(ratio);
+
+  contrastCheckResultEl.innerHTML = "";
+
+  const summary = document.createElement("p");
+  summary.innerHTML = `Contrast ratio: <span class="contrast-ratio">${ratio.toFixed(2)}:1</span>`;
+  contrastCheckResultEl.appendChild(summary);
+
+  const dl = document.createElement("dl");
+  const rows = [
+    ["AA, normal text (4.5:1)", rating.aaNormal],
+    ["AA, large text (3:1)", rating.aaLarge],
+    ["AAA, normal text (7:1)", rating.aaaNormal],
+    ["AAA, large text (4.5:1)", rating.aaaLarge],
+  ];
+  for (const [label, passes] of rows) {
+    const dt = document.createElement("dt");
+    dt.textContent = label;
+    const dd = document.createElement("dd");
+    dd.className = passes ? "pass" : "fail";
+    dd.textContent = passes ? "Pass" : "Fail";
+    dl.appendChild(dt);
+    dl.appendChild(dd);
+  }
+  contrastCheckResultEl.appendChild(dl);
+
+  const preview = document.createElement("p");
+  preview.className = "preview";
+  preview.style.background = bgHex;
+  preview.style.color = fgHex;
+  preview.textContent = "Sample text at this size";
+  contrastCheckResultEl.appendChild(preview);
+}
+
+checkContrastBtn.addEventListener("click", () =>
+  renderContrastCheck(contrastFgInput.value, contrastBgInput.value),
+);
 
 downloadCompareAllBtn.addEventListener("click", () => {
   const { width, height } = originalCanvas;
