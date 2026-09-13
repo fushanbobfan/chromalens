@@ -65,6 +65,10 @@ Then open the printed URL in a browser.
   pair by its worst-case separation under all four simulated deficiencies, lists the closest
   pairs first, and names the deficiency limiting each (see below). The other direction from the
   generator: it grades a palette you already have instead of building a new one.
+- **Foreground color / on background** — pick two colors and **Check contrast** reports their
+  WCAG 2.x contrast ratio and which of the four standard pass/fail thresholds it clears (see
+  below). A different question from every check above: not how confusable two colors become
+  under a deficiency, but whether either one is legible against the other at all.
 
 ## Confusion score
 
@@ -205,6 +209,26 @@ pairs as swatch rows with that limiting view named, so a failing palette points 
 pair and the deficiency to fix. Like the other color modules it has no DOM dependency and is
 unit-tested directly.
 
+## Text contrast
+
+Every check so far asks a version of the same question: how confusable do two colors become
+*under a simulated deficiency*. [`src/contrast.js`](src/contrast.js) asks a different one —
+whether a foreground and background are legible *at all*, deficiency aside — the WCAG 2.x
+contrast ratio question this project's own footer already points elsewhere for. `relativeLuminance`
+linearizes each sRGB channel out of its gamma encoding and combines them with the same
+green-dominant perceptual weights (`0.2126`/`0.7152`/`0.0722`) `cvd.js`'s achromatopsia conversion
+uses, for the same reason: the eye's luminance response depends far more on green light than red
+or blue. `contrastRatio` is `(lighter + 0.05) / (darker + 0.05)` between two colors' luminances —
+always at least 1 (identical colors) and at most 21 (pure black against pure white) — and
+`wcagRating` reports which of the four standard thresholds it clears: AA and AAA, each at normal
+text size and the more permissive large-text size. Contrast ratio and the confusion scores
+measure genuinely different things, not just different scales for the same idea: a pair can be
+high-contrast in luminance while still simulating as visually similar under a deficiency (two
+saturated colors of matched lightness but confusable hue), or the reverse (two colors a dichromacy
+barely changes, but which were never far apart in luminance to begin with). Like the other color
+modules, `contrast.js` has no DOM dependency and is unit-tested directly, against exact reference
+values (black-on-white is exactly 21) rather than only relative comparisons.
+
 ## Change heatmap
 
 [`src/heatmap.js`](src/heatmap.js) maps a `colorDistance` magnitude to a black → red → yellow
@@ -291,7 +315,11 @@ parsing mixed separators, missing `#`, and 3-digit shorthand, collecting unparse
 tolerating empty/non-string input, worst-case separation never exceeding the plain distance and
 blaming a red/green pair on a red/green deficiency, and `scorePalette` ranking pairs worst-first,
 flagging near-duplicates while clearing well-spread sets, honoring a threshold override, and
-handling fewer than two colors.
+handling fewer than two colors. `contrast.js` is tested for exact reference values (black
+against white is exactly 21, a color against itself is exactly 1), order-independence, staying
+within the theoretical `[1, 21]` range across a fuzz set of random color pairs, luminance
+weighting green above red above blue, monotonically increasing luminance, and `wcagRating`
+reporting each of the four thresholds independently right at its own boundary.
 
 ## License
 
