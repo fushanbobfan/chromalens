@@ -230,6 +230,61 @@ input[type="file"] {
   vertical-align: -0.05em;
 }
 
+input[type="color"] {
+  width: 2.4em;
+  height: 1.8em;
+  padding: 0;
+  border: 1px solid var(--muted);
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+}
+
+.contrast-check {
+  font-size: 0.85rem;
+}
+
+.contrast-check p {
+  margin: 0 0 0.25rem;
+  color: var(--muted);
+}
+
+.contrast-check .contrast-ratio {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.contrast-check dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.5rem;
+  row-gap: 0.15rem;
+}
+
+.contrast-check dt {
+  color: var(--muted);
+}
+
+.contrast-check dd {
+  margin: 0;
+}
+
+.contrast-check .pass {
+  color: #7ee787;
+}
+
+.contrast-check .fail {
+  color: #ff7b72;
+}
+
+.contrast-check .preview {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--muted);
+}
+
 .canvases {
   flex: 1 1 480px;
   min-width: 0;
