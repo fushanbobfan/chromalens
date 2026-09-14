@@ -9,6 +9,7 @@ import { parseHexList, scorePalette } from "./paletteCheck.js";
 import { describePixel } from "./pixelInspector.js";
 import { computeGridLayout } from "./gridLayout.js";
 import { contrastRatio, wcagRating } from "./contrast.js";
+import { buildShareUrl, decodeSettingsFromHash } from "./shareLink.js";
 
 const MAX_DIMENSION = 480;
 const SAMPLE_WIDTH = 480;
@@ -36,6 +37,7 @@ const severityValue = document.getElementById("severity-value");
 const fileInput = document.getElementById("image-file");
 const useSampleBtn = document.getElementById("use-sample");
 const downloadBtn = document.getElementById("download-simulated");
+const copyShareLinkBtn = document.getElementById("copy-share-link");
 const compareAllBtn = document.getElementById("compare-all");
 const compareAllGrid = document.getElementById("compare-all-grid");
 const downloadCompareAllBtn = document.getElementById("download-compare-all");
@@ -808,5 +810,53 @@ downloadBtn.addEventListener("click", () => {
   link.click();
 });
 
+copyShareLinkBtn.addEventListener("click", async () => {
+  const url = buildShareUrl(
+    {
+      deficiency: deficiencySelect.value,
+      severity: Number(severityInput.value) / 100,
+      viewMode: viewModeSelect.value,
+      compareAll: compareAllVisible,
+      severitySweep: severitySweepVisible,
+    },
+    window.location.href,
+  );
+  try {
+    await navigator.clipboard.writeText(url);
+    statusEl.textContent = "Share link copied to clipboard.";
+  } catch {
+    // Clipboard access can be denied (permissions, insecure context, older browsers); fall
+    // back to putting the link itself in the status line so it can still be copied by hand.
+    statusEl.textContent = `Copy this link to share: ${url}`;
+  }
+});
+
 populateDeficiencyOptions();
 loadSample();
+
+// If the page was opened from a share link, apply the settings it encodes over the sample
+// image — there's no uploaded photo to carry, so a share link always means the sample. Runs
+// after loadSample so it overrides the defaults rather than being overridden by them, and
+// clears the hash afterward so refreshing the page doesn't reapply it over further changes.
+const sharedSettings = decodeSettingsFromHash(window.location.hash);
+if (sharedSettings !== null) {
+  deficiencySelect.value = sharedSettings.deficiency;
+  severityInput.value = String(Math.round(sharedSettings.severity * 100));
+  severityValue.textContent = `${severityInput.value}%`;
+  viewModeSelect.value = sharedSettings.viewMode;
+  applySimulation();
+  if (sharedSettings.compareAll) {
+    compareAllVisible = true;
+    compareAllGrid.hidden = false;
+    compareAllBtn.setAttribute("aria-expanded", "true");
+    renderCompareAll();
+  }
+  if (sharedSettings.severitySweep) {
+    severitySweepVisible = true;
+    severitySweepGrid.hidden = false;
+    severitySweepBtn.setAttribute("aria-expanded", "true");
+    renderSeveritySweep();
+  }
+  statusEl.textContent = "Loaded shared view settings on the sample image.";
+  history.replaceState(null, "", window.location.pathname + window.location.search);
+}

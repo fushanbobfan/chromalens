@@ -43,6 +43,8 @@ Then open the printed URL in a browser.
   instead shows a **palette confusion score** for that photo's own dominant colors (see below).
 - **Download simulated image** — save the currently displayed simulation (whichever view mode
   is active) as a PNG, named after the deficiency, severity, and view mode that produced it.
+- **Copy share link** — copy a URL that reproduces the current deficiency, severity, view mode,
+  and compare-all/severity-sweep panel states on the sample image (see below).
 - **Compare all deficiencies** — toggle a row of thumbnails showing the current image under
   every deficiency at once, at the current severity (see below).
 - **Download comparison grid** — save that same set of per-deficiency thumbnails as a single
@@ -135,6 +137,23 @@ single view, these don't require the matching on-screen row to be toggled open f
 recompute the same underlying `compareAllDeficiencies`/`sweepSeverities` results independently
 of what's currently visible. `computeGridLayout`'s column/row math has no DOM dependency and is
 tested on its own; only the actual thumbnail compositing lives in `main.js`.
+
+## Share links
+
+**Copy share link** encodes the deficiency, severity, view mode, and whether the compare-all or
+severity-sweep panels are open into the URL hash — the same idea gravity-garden, pathlight, and
+epicyclon each use for their own share links, adapted to what this project actually has state
+for. The difference from those three: an uploaded photo can't be packed into a URL the way a
+scenario, grid, or drawn path can, so a chromalens share link never carries the image itself.
+Opening one always applies its settings to the built-in sample image — main.js is what decides
+that, not [`src/shareLink.js`](src/shareLink.js), which only encodes and decodes the settings
+and has no idea an image exists at all. That keeps the module trivially testable (plain
+`URLSearchParams`, no canvas or DOM), and keeps the door open for a future version that finds
+some other way to reference an uploaded image, without touching this format.
+
+A malformed or unrelated hash — a stray fragment left over from something else, or a link typed
+by hand — is treated the same as no hash at all rather than surfaced as an error: opening the
+page with nothing to restore is the overwhelmingly common case, not a broken link.
 
 ## Pixel inspector
 
@@ -319,7 +338,12 @@ handling fewer than two colors. `contrast.js` is tested for exact reference valu
 against white is exactly 21, a color against itself is exactly 1), order-independence, staying
 within the theoretical `[1, 21]` range across a fuzz set of random color pairs, luminance
 weighting green above red above blue, monotonically increasing luminance, and `wcagRating`
-reporting each of the four thresholds independently right at its own boundary.
+reporting each of the four thresholds independently right at its own boundary. `shareLink.js` is
+tested for round-tripping every setting through `buildShareUrl`/`decodeSettingsFromHash`,
+rounding severity to a whole percent, omitting the compare/sweep flags when both are off,
+replacing an existing hash on the base URL, and `decodeSettingsFromHash` returning `null` rather
+than throwing for an empty hash, an unrelated hash, an unrecognized deficiency or view mode, or
+an out-of-range or non-numeric severity.
 
 ## License
 
