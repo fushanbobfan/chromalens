@@ -6,6 +6,7 @@ import { sweepSeverities } from "./severitySweep.js";
 import { extractPalette, findConfusablePairs } from "./palette.js";
 import { generateAccessiblePalette } from "./paletteGenerator.js";
 import { parseHexList, scorePalette } from "./paletteCheck.js";
+import { paletteToCssVariables } from "./paletteExport.js";
 import { describePixel } from "./pixelInspector.js";
 import { computeGridLayout } from "./gridLayout.js";
 import { contrastRatio, wcagRating } from "./contrast.js";
@@ -47,6 +48,7 @@ const downloadSeveritySweepBtn = document.getElementById("download-severity-swee
 const paletteCountInput = document.getElementById("palette-count");
 const generatePaletteBtn = document.getElementById("generate-palette");
 const copyPaletteBtn = document.getElementById("copy-palette");
+const copyPaletteCssBtn = document.getElementById("copy-palette-css");
 const downloadPaletteBtn = document.getElementById("download-palette");
 const paletteGeneratorEl = document.getElementById("palette-generator");
 const paletteCheckInput = document.getElementById("palette-check-input");
@@ -513,12 +515,14 @@ generatePaletteBtn.addEventListener("click", () => {
     generatedPalette = null;
     paletteGeneratorEl.innerHTML = "";
     copyPaletteBtn.disabled = true;
+    copyPaletteCssBtn.disabled = true;
     downloadPaletteBtn.disabled = true;
     statusEl.textContent = error.message;
     return;
   }
   renderGeneratedPalette(generatedPalette);
   copyPaletteBtn.disabled = false;
+  copyPaletteCssBtn.disabled = false;
   downloadPaletteBtn.disabled = false;
 });
 
@@ -532,6 +536,20 @@ copyPaletteBtn.addEventListener("click", async () => {
     // Clipboard access can be denied (permissions, insecure context, older browsers); fall
     // back to putting the codes themselves in the status line so they can still be copied by hand.
     statusEl.textContent = `Copy these hex codes: ${generatedPalette.map((c) => c.hex).join(", ")}`;
+  }
+});
+
+// The same plain-text export as "Copy hex codes", just formatted via paletteExport.js's
+// paletteToCssVariables so the palette can be pasted straight into a stylesheet as custom
+// properties instead of retyped by hand from a list of hex codes.
+copyPaletteCssBtn.addEventListener("click", async () => {
+  if (!generatedPalette) return;
+  const css = paletteToCssVariables(generatedPalette);
+  try {
+    await navigator.clipboard.writeText(css);
+    statusEl.textContent = "Palette CSS variables copied to clipboard.";
+  } catch {
+    statusEl.textContent = `Copy these CSS variables:\n${css}`;
   }
 });
 
