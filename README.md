@@ -61,8 +61,9 @@ Then open the printed URL in a browser.
 - **Accessible palette size / Generate palette** — build a palette of N colors chosen to stay
   distinguishable from each other under every simulated deficiency, for picking chart or UI
   colors ahead of time (see below). **Copy hex codes** copies the generated palette to the
-  clipboard, one hex code per line. **Download palette** saves the same palette as a single
-  labeled PNG of its swatches.
+  clipboard, one hex code per line. **Copy CSS variables** copies the same palette formatted as
+  a `:root { --chroma-1: #...; }` block, ready to paste into a stylesheet (see below).
+  **Download palette** saves the same palette as a single labeled PNG of its swatches.
 - **Check an existing palette** — paste a list of hex codes and **Check palette** scores every
   pair by its worst-case separation under all four simulated deficiencies, lists the closest
   pairs first, and names the deficiency limiting each (see below). The other direction from the
@@ -213,6 +214,16 @@ with its own hex code, and saves the result as a single PNG. **Copy hex codes** 
 plain-text export; this is the same palette as an image, for pasting straight into a design tool
 or attaching to a message instead of retyping hex codes by hand.
 
+**Copy CSS variables** covers a third export shape, for a palette destined straight for a
+stylesheet rather than a design tool or a list of codes: [`src/paletteExport.js`](src/paletteExport.js)'s
+`paletteToCssVariables` formats the same generated palette as a `:root { --chroma-1: #...; }`
+block of CSS custom properties, one declaration per color in order, so it can be pasted directly
+into a project's CSS instead of hand-writing each `--variable-name: #hex;` line from the hex-code
+export. Like the rest of this project's color and formatting modules it has no DOM dependency
+and is unit-tested on its own; only the actual clipboard write lives in `main.js`, and falls back
+to showing the CSS text in the status line the same way **Copy hex codes** does if clipboard
+access is denied.
+
 ## Checking an existing palette
 
 The generator answers "give me colors that will hold up"; [`src/paletteCheck.js`](src/paletteCheck.js)
@@ -343,7 +354,10 @@ tested for round-tripping every setting through `buildShareUrl`/`decodeSettingsF
 rounding severity to a whole percent, omitting the compare/sweep flags when both are off,
 replacing an existing hash on the base URL, and `decodeSettingsFromHash` returning `null` rather
 than throwing for an empty hash, an unrelated hash, an unrecognized deficiency or view mode, or
-an out-of-range or non-numeric severity.
+an out-of-range or non-numeric severity. `paletteExport.js` is tested separately: wrapping
+declarations in a `:root` block, numbering variables from 1 in palette order, honoring a custom
+prefix, returning a valid empty block for an empty palette, and ignoring any fields on each
+color besides `hex`.
 
 ## License
 
