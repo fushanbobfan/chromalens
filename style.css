@@ -220,6 +220,16 @@ input[type="file"] {
   margin-bottom: 0.15rem;
 }
 
+.palette-repair:not(:empty) {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--muted);
+}
+
+.palette-repair button {
+  margin-top: 0.25rem;
+}
+
 .palette-check .swatch {
   display: inline-block;
   width: 0.75em;

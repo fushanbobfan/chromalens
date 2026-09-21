@@ -67,7 +67,9 @@ Then open the printed URL in a browser.
 - **Check an existing palette** — paste a list of hex codes and **Check palette** scores every
   pair by its worst-case separation under all four simulated deficiencies, lists the closest
   pairs first, and names the deficiency limiting each (see below). The other direction from the
-  generator: it grades a palette you already have instead of building a new one.
+  generator: it grades a palette you already have instead of building a new one. When pairs
+  fail, **Suggest fixes** proposes the smallest nudges that make the palette pass, and **Use
+  repaired palette** writes them back into the box and re-checks (see below).
 - **Foreground color / on background** — pick two colors and **Check contrast** reports their
   WCAG 2.x contrast ratio and which of the four standard pass/fail thresholds it clears (see
   below). A different question from every check above: not how confusable two colors become
@@ -239,6 +241,23 @@ pairs as swatch rows with that limiting view named, so a failing palette points 
 pair and the deficiency to fix. Like the other color modules it has no DOM dependency and is
 unit-tested directly.
 
+## Repairing a palette
+
+Checking tells you which pairs fail; it doesn't tell you what to change. Regenerating from
+scratch isn't always an option either — a brand set or an established chart legend has to stay
+recognisable. [`src/paletteRepair.js`](src/paletteRepair.js)'s `repairPalette` sits between the
+two: it moves as few colors as possible, each as little as possible, until every pair clears the
+same `SAFE_DISTANCE` floor the checker grades against. Each round takes the currently worst pair,
+moves whichever member is involved in more failing pairs (on a tie, the later one, so the front
+of the palette — where the primary color usually sits — is disturbed last), and replaces it with
+the color in a fixed HSL neighbourhood (hue ±60° in 10° steps, saturation ±30, lightness ±30)
+that clears the floor against every other color while staying closest to the original. If
+nothing in the neighbourhood clears, the candidate with the most clearance is taken so the next
+round can build on it; the loop is bounded, so a palette too crowded to fix is reported as still
+failing rather than looped on forever. The panel lists each moved color before and after with
+its shift, and colors that were never in a failing pair are guaranteed untouched. Like the other
+color modules it has no DOM dependency and is unit-tested directly.
+
 ## Text contrast
 
 Every check so far asks a version of the same question: how confusable do two colors become
@@ -357,7 +376,12 @@ than throwing for an empty hash, an unrelated hash, an unrecognized deficiency o
 an out-of-range or non-numeric severity. `paletteExport.js` is tested separately: wrapping
 declarations in a `:root` block, numbering variables from 1 in palette order, honoring a custom
 prefix, returning a valid empty block for an empty palette, and ignoring any fields on each
-color besides `hex`.
+color besides `hex`. `paletteRepair.js` is tested for `rgbToHsl` inverting the generator's
+`hslToRgb`, failing fixtures coming back clear, near-duplicate blues being pulled apart, colors
+outside any failing pair staying untouched, each change recording its original, replacement and
+shift in palette order, an already-clear palette coming back unchanged in zero rounds,
+determinism without mutating the input, a stricter floor never producing a closer worst pair
+than a looser one, `maxRounds` bounding the work, and fewer than two colors returning as-is.
 
 ## License
 

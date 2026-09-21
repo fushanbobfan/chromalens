@@ -6,6 +6,7 @@ import { sweepSeverities } from "./severitySweep.js";
 import { extractPalette, findConfusablePairs } from "./palette.js";
 import { generateAccessiblePalette } from "./paletteGenerator.js";
 import { parseHexList, scorePalette } from "./paletteCheck.js";
+import { repairPalette } from "./paletteRepair.js";
 import { paletteToCssVariables } from "./paletteExport.js";
 import { describePixel } from "./pixelInspector.js";
 import { computeGridLayout } from "./gridLayout.js";
@@ -54,6 +55,8 @@ const paletteGeneratorEl = document.getElementById("palette-generator");
 const paletteCheckInput = document.getElementById("palette-check-input");
 const checkPaletteBtn = document.getElementById("check-palette");
 const paletteCheckResultEl = document.getElementById("palette-check-result");
+const repairPaletteBtn = document.getElementById("repair-palette");
+const paletteRepairResultEl = document.getElementById("palette-repair-result");
 const contrastFgInput = document.getElementById("contrast-fg");
 const contrastBgInput = document.getElementById("contrast-bg");
 const checkContrastBtn = document.getElementById("check-contrast");
@@ -604,6 +607,9 @@ function renderPaletteCheck(text) {
   const { colors, invalid } = parseHexList(text);
   paletteCheckResultEl.innerHTML = "";
 
+  paletteRepairResultEl.innerHTML = "";
+  repairPaletteBtn.disabled = true;
+
   if (colors.length < 2) {
     const p = document.createElement("p");
     p.textContent =
@@ -617,6 +623,7 @@ function renderPaletteCheck(text) {
 
   const { pairs, safeDistance, allClear } = scorePalette(colors);
   const failing = pairs.filter((pair) => !pair.safe);
+  repairPaletteBtn.disabled = allClear;
 
   const summary = document.createElement("p");
   summary.textContent = allClear
@@ -660,6 +667,54 @@ function invalidNote(invalid) {
 }
 
 checkPaletteBtn.addEventListener("click", () => renderPaletteCheck(paletteCheckInput.value));
+
+// The check names the pairs that fail; this proposes the fix (see paletteRepair.js): the fewest
+// colors nudged the least distance until every pair clears the same floor. Each moved color is
+// shown before and after with its shift, and "Use repaired palette" writes the result back into
+// the textarea and re-checks it, so the round trip ends in the same readout as a hand edit would.
+function renderPaletteRepair(text) {
+  const { colors } = parseHexList(text);
+  paletteRepairResultEl.innerHTML = "";
+  if (colors.length < 2) return;
+
+  const { colors: repaired, changes, allClear } = repairPalette(colors);
+
+  const summary = document.createElement("p");
+  if (changes.length === 0) {
+    summary.textContent = "Nothing to change — every pair already clears the floor.";
+    paletteRepairResultEl.appendChild(summary);
+    return;
+  }
+  summary.textContent = allClear
+    ? `Moving ${changes.length} of ${colors.length} colors clears every pair:`
+    : `Moved ${changes.length} of ${colors.length} colors; some pairs still fall short, so a larger change or a different palette is needed:`;
+  paletteRepairResultEl.appendChild(summary);
+
+  const list = document.createElement("ul");
+  for (const change of changes) {
+    const li = document.createElement("li");
+    li.innerHTML =
+      `<span class="swatch" style="background:${change.from.hex}"></span>${change.from.hex} → ` +
+      `<span class="swatch" style="background:${change.to.hex}"></span>${change.to.hex} ` +
+      `— moved ${Math.round(change.shift)}`;
+    list.appendChild(li);
+  }
+  paletteRepairResultEl.appendChild(list);
+
+  const actions = document.createElement("p");
+  const useBtn = document.createElement("button");
+  useBtn.type = "button";
+  useBtn.textContent = "Use repaired palette";
+  useBtn.addEventListener("click", () => {
+    paletteCheckInput.value = repaired.map((c) => c.hex).join(" ");
+    renderPaletteCheck(paletteCheckInput.value);
+    statusEl.textContent = "Repaired palette written back and re-checked.";
+  });
+  actions.appendChild(useBtn);
+  paletteRepairResultEl.appendChild(actions);
+}
+
+repairPaletteBtn.addEventListener("click", () => renderPaletteRepair(paletteCheckInput.value));
 
 // A different question from every check above: not "how confusable do these colors become
 // under a deficiency" but "is this foreground legible against this background for anyone,"
