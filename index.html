@@ -84,13 +84,16 @@
       </div>
       <div class="control-row">
         <button id="check-palette" type="button">Check palette</button>
+        <button id="repair-palette" type="button" disabled>Suggest fixes</button>
       </div>
       <p id="palette-check-hint" class="hint">
         Scores every pair of colors in a palette you already have by its worst-case separation
         across all four simulated deficiencies, worst pair first, and names the one that limits
-        each.
+        each. When pairs fail, <strong>Suggest fixes</strong> nudges the fewest colors the least
+        distance until every pair clears the floor.
       </p>
       <div class="palette-check" id="palette-check-result" aria-live="polite"></div>
+      <div class="palette-check palette-repair" id="palette-repair-result" aria-live="polite"></div>
 
       <div class="control-row">
         <label for="contrast-fg">Foreground color</label>
