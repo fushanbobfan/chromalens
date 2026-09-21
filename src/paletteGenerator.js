@@ -13,7 +13,8 @@ const HUE_STEP = 12;
 const SATURATIONS = [60, 85];
 const LIGHTNESSES = [40, 60];
 
-function hslToRgb(h, s, l) {
+/** HSL (h in degrees, s and l in percent) to an `{r, g, b}` triple of 0-255 channels. */
+export function hslToRgb(h, s, l) {
   const sat = s / 100;
   const light = l / 100;
   const c = (1 - Math.abs(2 * light - 1)) * sat;
