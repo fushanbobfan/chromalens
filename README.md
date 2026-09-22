@@ -3,6 +3,8 @@
 An interactive color-vision-deficiency simulator, built with plain HTML5 canvas and vanilla
 JavaScript — no build step, no dependencies.
 
+**Live demo:** https://fushanbobfan.github.io/chromalens/
+
 Upload an image (or use the built-in sample) and see it the way protanopia, deuteranopia,
 tritanopia, or full color blindness would render it, at any severity from unaffected to full.
 
